@@ -177,12 +177,12 @@ export default function App() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '28px', margin: '0 auto 20px',
               boxShadow: '0 0 0 1px rgba(255,255,255,0.08), 0 8px 40px rgba(31,111,235,0.4)',
-            }}>🔗</div>
+            }}></div>
             <h1 style={{
               color: '#f0f6ff', fontSize: '1.75rem', fontWeight: '800',
               margin: 0, letterSpacing: '-0.03em',
-              background: 'linear-gradient(135deg, #e6edf3 0%, #8b949e 100%)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              backgroundImage: 'linear-gradient(135deg, #e6edf3 0%, #8b949e 100%)',
+              backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             }}>
               Unified CRM API
             </h1>
@@ -360,12 +360,12 @@ export default function App() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '18px', flexShrink: 0,
             boxShadow: '0 0 16px rgba(31,111,235,0.4)',
-          }}>🔗</div>
+          }}></div>
           <div>
             <span style={{
               color: '#e6edf3', fontSize: '1rem', fontWeight: '700', letterSpacing: '-0.02em',
-              background: 'linear-gradient(90deg, #e6edf3, #8b949e)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              backgroundImage: 'linear-gradient(90deg, #e6edf3, #8b949e)',
+              backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             }}>
               Unified CRM
             </span>
@@ -447,8 +447,8 @@ export default function App() {
           <h1 style={{
             fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', fontWeight: '800', margin: '0 0 10px',
             letterSpacing: '-0.04em', lineHeight: 1.15,
-            background: 'linear-gradient(135deg, #e6edf3 0%, #c9d1d9 50%, #8b949e 100%)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            backgroundImage: 'linear-gradient(135deg, #e6edf3 0%, #c9d1d9 50%, #8b949e 100%)',
+            backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           }}>
             Unified API Dashboard
           </h1>
