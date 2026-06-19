@@ -1,0 +1,77 @@
+# ─────────────────────────────────────
+# Dependencies
+# ─────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ─────────────────────────────────────
+# Build outputs
+# ─────────────────────────────────────
+dist/
+build/
+*.tsbuildinfo
+__pycache__/
+*.pyc
+*.pyo
+
+# ─────────────────────────────────────
+# Environment & Secrets (NEVER commit)
+# ─────────────────────────────────────
+.env
+.env.local
+.env.production
+.env.staging
+*.env
+
+# ─────────────────────────────────────
+# Logs
+# ─────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ─────────────────────────────────────
+# Database files
+# ─────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+sql_app.db
+
+# ─────────────────────────────────────
+# macOS
+# ─────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# ─────────────────────────────────────
+# IDE
+# ─────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ─────────────────────────────────────
+# Testing
+# ─────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ─────────────────────────────────────
+# Python virtual envs
+# ─────────────────────────────────────
+venv/
+.venv/
+env/
+
+# ─────────────────────────────────────
+# Prisma
+# ─────────────────────────────────────
+# Keep schema.prisma but ignore generated client (regenerated on install)
+# prisma/generated/

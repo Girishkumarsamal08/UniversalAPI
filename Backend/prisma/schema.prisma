@@ -1,0 +1,173 @@
+// Prisma Schema - Unified CRM API
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// USERS TABLE
+// ─────────────────────────────────────────────
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  ownedOrganizations Organization[] @relation("OrgOwner")
+  memberships        OrgMember[]
+  providerConnections ProviderConnection[]
+  apiLogs            ApiLog[]
+  refreshTokens      RefreshToken[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// ORGANIZATIONS TABLE
+// ─────────────────────────────────────────────
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  ownerId   String   @map("owner_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  owner     User        @relation("OrgOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members   OrgMember[]
+  contacts  Contact[]
+  companies Company[]
+
+  @@map("organizations")
+}
+
+// ─────────────────────────────────────────────
+// ORG MEMBERS (Many-to-Many Users <-> Orgs)
+// ─────────────────────────────────────────────
+model OrgMember {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  organizationId String   @map("organization_id")
+  role           String   @default("member") // owner | admin | member
+  joinedAt       DateTime @default(now()) @map("joined_at")
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@map("org_members")
+}
+
+// ─────────────────────────────────────────────
+// PROVIDER CONNECTIONS (OAuth tokens)
+// ─────────────────────────────────────────────
+model ProviderConnection {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  provider     String   // hubspot | salesforce | pipedrive
+  accessToken  String   @map("access_token") @db.Text
+  refreshToken String?  @map("refresh_token") @db.Text
+  expiresAt    DateTime? @map("expires_at")
+  scope        String?
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@map("provider_connections")
+}
+
+// ─────────────────────────────────────────────
+// CONTACTS TABLE
+// ─────────────────────────────────────────────
+model Contact {
+  id             String  @id @default(uuid())
+  externalId     String  @map("external_id")
+  provider       String  // hubspot | salesforce | pipedrive | mock
+  name           String
+  email          String?
+  phone          String?
+  jobTitle       String? @map("job_title")
+  organizationId String  @map("organization_id")
+  rawData        Json?   @map("raw_data") // original provider payload
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([externalId, provider, organizationId])
+  @@map("contacts")
+}
+
+// ─────────────────────────────────────────────
+// COMPANIES TABLE
+// ─────────────────────────────────────────────
+model Company {
+  id             String  @id @default(uuid())
+  externalId     String  @map("external_id")
+  provider       String  // hubspot | salesforce | pipedrive | mock
+  name           String
+  website        String?
+  industry       String?
+  size           String?
+  organizationId String  @map("organization_id")
+  rawData        Json?   @map("raw_data")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([externalId, provider, organizationId])
+  @@map("companies")
+}
+
+// ─────────────────────────────────────────────
+// API LOGS TABLE
+// ─────────────────────────────────────────────
+model ApiLog {
+  id           String   @id @default(uuid())
+  userId       String?  @map("user_id")
+  endpoint     String
+  method       String
+  statusCode   Int      @map("status_code")
+  responseTime Int      @map("response_time") // milliseconds
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+  errorMessage String?  @map("error_message") @db.Text
+  timestamp    DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([endpoint])
+  @@index([timestamp])
+  @@map("api_logs")
+}
+
+// ─────────────────────────────────────────────
+// REFRESH TOKENS TABLE
+// ─────────────────────────────────────────────
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique @db.Text
+  expiresAt DateTime @map("expires_at")
+  isRevoked Boolean  @default(false) @map("is_revoked")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
