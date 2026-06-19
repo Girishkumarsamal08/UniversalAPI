@@ -89,6 +89,10 @@ export const register = async (req: Request, res: Response): Promise<void> => {
  *       401:
  *         description: Invalid credentials
  */
+// Demo credentials for no-DB dev mode
+const DEMO_EMAIL    = 'admin@unifiedcrm.io';
+const DEMO_PASSWORD = 'Password123';
+
 export const login = async (req: Request, res: Response): Promise<void> => {
   const parsed = LoginSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -101,6 +105,36 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const { user, tokens } = await AuthService.loginUser(parsed.data);
     sendSuccess(res, { user, tokens }, 'Login successful');
   } catch (error: unknown) {
+    // ── DB unavailable? Fall back to mock credentials in dev ──
+    const isDbDown =
+      error instanceof Error &&
+      (error.message.includes("Can't reach database") ||
+       error.message.includes('ECONNREFUSED') ||
+       error.message.includes('P1001'));
+
+    if (isDbDown && process.env.NODE_ENV === 'development') {
+      const { email, password } = parsed.data;
+      if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
+        const { generateAccessToken, generateRefreshToken } = await import('../services/jwt.service');
+        const demoUser = {
+          id: 'dev-mock-user-001',
+          email: DEMO_EMAIL,
+          name: 'Admin User',
+          organizationId: 'dev-mock-org-001',
+        };
+        const accessToken  = generateAccessToken(demoUser);
+        const refreshToken = generateRefreshToken();
+        logger.warn('DEV MODE: Mock login used — set up PostgreSQL for full auth.');
+        sendSuccess(res, {
+          user: demoUser,
+          tokens: { accessToken, refreshToken, expiresIn: '15m' },
+        }, 'Login successful (dev mock mode)');
+        return;
+      }
+      sendUnauthorized(res, 'Invalid credentials. Use: admin@unifiedcrm.io / Password123');
+      return;
+    }
+
     if (error instanceof Error && error.message === 'INVALID_CREDENTIALS') {
       sendUnauthorized(res, 'Invalid email or password');
       return;

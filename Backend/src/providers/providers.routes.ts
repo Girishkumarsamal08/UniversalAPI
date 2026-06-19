@@ -22,17 +22,16 @@ const router = Router();
  */
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    let connectedMap: Record<string, boolean> = {};
 
-    const connections = await prisma.providerConnection.findMany({
-      where: { userId },
-      select: { provider: true, isActive: true, createdAt: true },
-    });
-
-    const connectedMap: Record<string, boolean> = {};
-    connections.forEach((c) => {
-      connectedMap[c.provider] = c.isActive;
-    });
+    // Only query DB if it's available (not the dev mock user)
+    if (req.user?.id !== 'dev-mock-user-001') {
+      const connections = await prisma.providerConnection.findMany({
+        where: { userId: req.user!.id },
+        select: { provider: true, isActive: true },
+      });
+      connections.forEach((c) => { connectedMap[c.provider] = c.isActive; });
+    }
 
     const providers = SUPPORTED_PROVIDERS.map((name) => ({
       name,

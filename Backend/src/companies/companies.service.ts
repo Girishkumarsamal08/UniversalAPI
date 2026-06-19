@@ -12,11 +12,11 @@ export const getCompanies = async (
   organizationId: string
 ): Promise<PaginatedResponse<Company>> => {
   const { page, limit, provider, search } = query;
-  const skip = (page - 1) * limit;
 
-  // If provider is specified and not 'all', use the adapter (live data)
-  if (provider && provider !== 'all') {
-    const adapter = await getProviderAdapter(provider, userId);
+  // Always use mock adapter if provider=mock OR if org is the dev mock org
+  const useMock = provider === 'mock' || !provider || provider === 'all' || organizationId === 'dev-mock-org-001';
+  if (useMock) {
+    const adapter = await getProviderAdapter('mock', userId);
     const companies = await adapter.getCompanies({ page, limit, search });
     return {
       data: companies,
@@ -31,7 +31,7 @@ export const getCompanies = async (
     };
   }
 
-  // Default: query from DB (synced / mock data)
+  // Use real DB when available
   const where = {
     organizationId,
     ...(provider && provider !== 'all' ? { provider } : {}),
