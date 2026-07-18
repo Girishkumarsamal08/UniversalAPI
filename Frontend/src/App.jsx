@@ -652,7 +652,7 @@ export default function App() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button onClick={() => setIsSidebarOpen(true)} style={{
-            background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer',
+            background: 'none', color: '#8b949e', cursor: 'pointer',
             display: 'flex', alignItems: 'center', padding: '6px', borderRadius: '6px',
             transition: 'background 0.2s', border: '1px solid rgba(48,54,61,0.5)'
           }}>
@@ -1197,7 +1197,7 @@ export default function App() {
                   { id: 'commerce', label: 'E-Commerce' },
                 ].map(cat => (
                   <button key={cat.id} onClick={() => setMarketFilter(cat.id)} style={{
-                    padding: '6px 12px', borderRadius: '6px', border: 'none', fontSize: '0.78rem',
+                    padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem',
                     fontWeight: '600', cursor: 'pointer', transition: 'all 0.15s',
                     background: marketFilter === cat.id ? 'rgba(31,111,235,0.15)' : 'transparent',
                     color: marketFilter === cat.id ? '#58a6ff' : '#8b949e',
