@@ -14,6 +14,8 @@ export const RegisterSchema = z.object({
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[0-9]/, 'Password must contain at least one number'),
   organizationName: z.string().min(2).max(100).optional(),
+  department: z.enum(['Engineering', 'Sales', 'Support', 'Finance', 'QA', 'HR', 'Product']).default('Engineering'),
+  role: z.enum(['CTO', 'Admin', 'Regional Head', 'Engineering Manager', 'Team Lead', 'Senior Developer', 'Developer', 'QA Engineer', 'Support Engineer', 'Intern']).default('Developer'),
 });
 
 export const LoginSchema = z.object({
@@ -71,3 +73,23 @@ export type CreateContactInput = z.infer<typeof CreateContactSchema>;
 export type ContactQueryInput = z.infer<typeof ContactQuerySchema>;
 export type CreateCompanyInput = z.infer<typeof CreateCompanySchema>;
 export type CompanyQueryInput = z.infer<typeof CompanyQuerySchema>;
+
+// ─────────────────────────────────────────────
+// DEAL SCHEMAS
+// ─────────────────────────────────────────────
+export const CreateDealSchema = z.object({
+  title: z.string().min(1).max(200),
+  amount: z.number().optional(),
+  stage: z.string().max(100).optional(),
+  provider: z.enum(['hubspot', 'salesforce', 'pipedrive', 'mock']).default('mock'),
+});
+
+export const DealQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+  provider: z.enum(['hubspot', 'salesforce', 'pipedrive', 'mock', 'all']).optional(),
+  search: z.string().max(200).optional(),
+});
+
+export type CreateDealInput = z.infer<typeof CreateDealSchema>;
+export type DealQueryInput = z.infer<typeof DealQuerySchema>;

@@ -1,0 +1,28 @@
+{
+  "contact": {
+    "externalId": "id",
+    "name": "name",
+    "email": {
+      "type": "array_find",
+      "arrayPath": "email",
+      "valueKey": "value"
+    },
+    "phone": {
+      "type": "array_find",
+      "arrayPath": "phone",
+      "valueKey": "value"
+    },
+    "jobTitle": "job_title"
+  },
+  "company": {
+    "externalId": "id",
+    "name": "name",
+    "size": "people_count"
+  },
+  "deal": {
+    "externalId": "id",
+    "title": "title",
+    "amount": "value",
+    "stage": "stage_id"
+  }
+}

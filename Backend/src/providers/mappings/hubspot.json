@@ -1,0 +1,32 @@
+{
+  "contact": {
+    "externalId": "id",
+    "name": {
+      "type": "join",
+      "fields": ["properties.firstname", "properties.lastname"],
+      "separator": " "
+    },
+    "email": "properties.email",
+    "phone": "properties.phone",
+    "jobTitle": "properties.jobtitle",
+    "createdAt": "createdAt",
+    "updatedAt": "updatedAt"
+  },
+  "company": {
+    "externalId": "id",
+    "name": "properties.name",
+    "website": "properties.website",
+    "industry": "properties.industry",
+    "size": "properties.numberofemployees",
+    "createdAt": "createdAt",
+    "updatedAt": "updatedAt"
+  },
+  "deal": {
+    "externalId": "id",
+    "title": "properties.dealname",
+    "amount": "properties.amount",
+    "stage": "properties.dealstage",
+    "createdAt": "createdAt",
+    "updatedAt": "updatedAt"
+  }
+}

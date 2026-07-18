@@ -12,6 +12,7 @@ export interface Contact {
   organizationId?: string;
   createdAt?: string;
   updatedAt?: string;
+  _raw_passthrough?: any;
 }
 
 export interface Company {
@@ -25,6 +26,20 @@ export interface Company {
   organizationId?: string;
   createdAt?: string;
   updatedAt?: string;
+  _raw_passthrough?: any;
+}
+
+export interface Deal {
+  id: string;
+  externalId: string;
+  title: string;
+  amount?: number;
+  stage?: string;
+  provider: string;
+  organizationId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  _raw_passthrough?: any;
 }
 
 export interface PaginatedResponse<T> {
@@ -52,6 +67,9 @@ export interface UserPayload {
   email: string;
   name: string;
   organizationId?: string;
+  role?: string;
+  department?: string;
+  status?: string;
 }
 
 export interface TokenPair {

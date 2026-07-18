@@ -13,6 +13,12 @@ import authRoutes from './auth/auth.routes';
 import contactsRoutes from './contacts/contacts.routes';
 import companiesRoutes from './companies/companies.routes';
 import providersRoutes from './providers/providers.routes';
+import logsRoutes from './logs/logs.routes';
+import analyticsRoutes from './analytics/analytics.routes';
+import integrationRoutes from './modules/integrations/integration.routes';
+import dealsRoutes from './deals/deals.routes';
+import approvalRoutes from './auth/approval.routes';
+import projectRoutes from './projects/project.routes';
 
 export const createApp = (): Express => {
   const app = express();
@@ -81,7 +87,13 @@ export const createApp = (): Express => {
   app.use(`${API_PREFIX}/auth`, authRoutes);
   app.use(`${API_PREFIX}/contacts`, contactsRoutes);
   app.use(`${API_PREFIX}/companies`, companiesRoutes);
+  app.use(`${API_PREFIX}/deals`, dealsRoutes);
   app.use(`${API_PREFIX}/providers`, providersRoutes);
+  app.use(`${API_PREFIX}/logs`, logsRoutes);
+  app.use(`${API_PREFIX}/analytics`, analyticsRoutes);
+  app.use(`${API_PREFIX}/integrations`, integrationRoutes);
+  app.use(`${API_PREFIX}/approvals`, approvalRoutes);
+  app.use(`${API_PREFIX}/projects`, projectRoutes);
 
   // ─────────────────────────────────────────────
   // Error Handling (must be last)

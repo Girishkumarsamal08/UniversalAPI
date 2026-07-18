@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "frontend": "cd Frontend && npm run dev",
-    "backend": "cd Backend && uvicorn app.main:app --reload",
-    "dev": "npm run frontend"
+    "backend": "cd Backend && npm run dev",
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

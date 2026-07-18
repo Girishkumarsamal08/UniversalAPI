@@ -16,13 +16,13 @@ export const getProviderAdapter = async (
   }
 
   // Look up OAuth token from DB
-  const connection = await prisma.providerConnection.findUnique({
+  const connection = await prisma.integration.findUnique({
     where: {
       userId_provider: { userId, provider: providerName },
     },
   });
 
-  if (!connection || !connection.isActive) {
+  if (!connection || connection.status !== 'Connected') {
     throw new Error(`No active connection found for provider: ${providerName}. Please connect via OAuth first.`);
   }
 

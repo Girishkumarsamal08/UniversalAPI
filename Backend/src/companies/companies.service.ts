@@ -32,9 +32,11 @@ export const getCompanies = async (
   }
 
   // Use real DB when available
+  const skip = (page - 1) * limit;
+
   const where = {
     organizationId,
-    ...(provider && provider !== 'all' ? { provider } : {}),
+    ...(provider ? { provider } : {}),
     ...(search
       ? {
           name: { contains: search, mode: 'insensitive' as const },
@@ -63,6 +65,7 @@ export const getCompanies = async (
     organizationId: c.organizationId,
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
+    _raw_passthrough: c.rawData ?? undefined,
   }));
 
   return {
@@ -99,6 +102,7 @@ export const getCompanyById = async (
     organizationId: company.organizationId,
     createdAt: company.createdAt.toISOString(),
     updatedAt: company.updatedAt.toISOString(),
+    _raw_passthrough: company.rawData ?? undefined,
   };
 };
 
@@ -120,6 +124,7 @@ export const createCompany = async (
       industry: created.industry,
       size: created.size,
       organizationId,
+      rawData: created._raw_passthrough || null,
     },
   });
 
@@ -136,5 +141,6 @@ export const createCompany = async (
     organizationId: saved.organizationId,
     createdAt: saved.createdAt.toISOString(),
     updatedAt: saved.updatedAt.toISOString(),
+    _raw_passthrough: saved.rawData ?? undefined,
   };
 };

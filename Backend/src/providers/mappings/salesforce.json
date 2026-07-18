@@ -1,0 +1,26 @@
+{
+  "contact": {
+    "externalId": "Id",
+    "name": {
+      "type": "join",
+      "fields": ["FirstName", "LastName"],
+      "separator": " "
+    },
+    "email": "Email",
+    "phone": "Phone",
+    "jobTitle": "Title"
+  },
+  "company": {
+    "externalId": "Id",
+    "name": "Name",
+    "website": "Website",
+    "industry": "Industry",
+    "size": "NumberOfEmployees"
+  },
+  "deal": {
+    "externalId": "Id",
+    "title": "Name",
+    "amount": "Amount",
+    "stage": "StageName"
+  }
+}

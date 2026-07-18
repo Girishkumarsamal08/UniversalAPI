@@ -1,6 +1,6 @@
 // CRM Provider Interface — All adapters must implement this contract
 
-import { Contact, Company } from '../schemas/unified.types';
+import { Contact, Company, Deal } from '../schemas/unified.types';
 
 export interface CRMProvider {
   readonly providerName: string;
@@ -36,6 +36,11 @@ export interface CRMProvider {
    * Create a company in the provider
    */
   createCompany(data: CreateCompanyData): Promise<Company>;
+
+  /**
+   * Fetch all deals from the CRM provider
+   */
+  getDeals(options?: ProviderQueryOptions): Promise<Deal[]>;
 
   /**
    * Test if the provider credentials/token are still valid

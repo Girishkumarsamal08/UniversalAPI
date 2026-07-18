@@ -16,8 +16,35 @@ if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
   process.exit(1);
 }
 
+export const ROLE_PERMISSIONS: Record<string, string[]> = {
+  CTO: ['view_dashboard', 'manage_integrations', 'delete_integrations', 'view_billing', 'manage_users', 'view_security', 'view_audit_logs', 'view_analytics', 'use_playground', 'approve_requests', 'view_regional_perf', 'manage_teams', 'view_deployments', 'view_sprints', 'view_projects', 'view_logs', 'view_docs', 'view_testing', 'view_support'],
+  Admin: ['view_dashboard', 'manage_integrations', 'view_billing', 'manage_users', 'view_security', 'view_audit_logs', 'view_analytics', 'use_playground', 'approve_requests', 'manage_teams', 'view_projects', 'view_logs', 'view_docs'],
+  'Regional Head': ['view_dashboard', 'view_regional_perf', 'manage_users', 'view_analytics', 'view_logs', 'view_docs'],
+  'Engineering Manager': ['view_dashboard', 'manage_teams', 'view_deployments', 'view_analytics', 'use_playground', 'view_projects', 'view_logs', 'view_docs'],
+  'Team Lead': ['view_dashboard', 'view_sprints', 'view_deployments', 'use_playground', 'view_projects', 'view_logs', 'view_docs'],
+  'Senior Developer': ['view_dashboard', 'use_playground', 'view_projects', 'view_logs', 'view_docs'],
+  Developer: ['view_dashboard', 'use_playground', 'view_projects', 'view_logs', 'view_docs'],
+  'QA Engineer': ['view_dashboard', 'view_testing', 'use_playground', 'view_docs'],
+  'Support Engineer': ['view_dashboard', 'view_support', 'use_playground', 'view_docs'],
+  Intern: ['view_dashboard', 'view_docs']
+};
+
 export const generateAccessToken = (payload: UserPayload): string => {
-  return jwt.sign(payload, JWT_SECRET, {
+  const role = payload.role || 'Developer';
+  const permissions = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.Developer;
+  
+  const tokenPayload = {
+    id: payload.id,
+    email: payload.email,
+    name: payload.name,
+    organizationId: payload.organizationId,
+    role,
+    department: payload.department || 'Engineering',
+    status: payload.status || 'APPROVED',
+    permissions,
+  };
+
+  return jwt.sign(tokenPayload, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN,
     issuer: 'unified-crm-api',
     audience: 'unified-crm-client',
@@ -63,7 +90,13 @@ export const rotateRefreshToken = async (oldToken: string): Promise<TokenPair | 
   // Find and validate old token
   const tokenRecord = await prisma.refreshToken.findUnique({
     where: { token: oldToken },
-    include: { user: true },
+    include: {
+      user: {
+        include: {
+          memberships: { take: 1 }
+        }
+      }
+    },
   });
 
   if (!tokenRecord || tokenRecord.isRevoked || tokenRecord.expiresAt < new Date()) {
@@ -81,6 +114,10 @@ export const rotateRefreshToken = async (oldToken: string): Promise<TokenPair | 
     id: tokenRecord.user.id,
     email: tokenRecord.user.email,
     name: tokenRecord.user.name,
+    organizationId: tokenRecord.user.memberships[0]?.organizationId,
+    role: tokenRecord.user.role,
+    department: tokenRecord.user.department,
+    status: tokenRecord.user.status,
   };
 
   return createTokenPair(userPayload);

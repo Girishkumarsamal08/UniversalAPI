@@ -56,6 +56,35 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const { user, tokens } = await AuthService.registerUser(parsed.data);
     sendCreated(res, { user, tokens }, 'Registration successful');
   } catch (error: unknown) {
+    const isDbDown =
+      error instanceof Error &&
+      (error.message.includes("Can't reach database") ||
+       error.message.includes('ECONNREFUSED') ||
+       error.message.includes('P1001') ||
+       error.message.includes('P2021') ||
+       error.message.includes('does not exist') ||
+       (error as any).code === 'P1001' ||
+       (error as any).code === 'P2021');
+
+    if (isDbDown && process.env.NODE_ENV === 'development') {
+      const { name, email } = parsed.data;
+      const { generateAccessToken, generateRefreshToken } = await import('../services/jwt.service');
+      const demoUser = {
+        id: `dev-mock-user-${Date.now()}`,
+        email,
+        name: name || email.split('@')[0] || 'Mock User',
+        organizationId: 'dev-mock-org-001',
+      };
+      const accessToken  = generateAccessToken(demoUser);
+      const refreshToken = generateRefreshToken();
+      logger.warn('DEV MODE: Mock register used — set up PostgreSQL for full auth.');
+      sendCreated(res, {
+        user: demoUser,
+        tokens: { accessToken, refreshToken, expiresIn: '15m' },
+      }, 'Registration successful (dev mock mode)');
+      return;
+    }
+
     if (error instanceof Error && error.message === 'EMAIL_EXISTS') {
       sendBadRequest(res, 'Email already registered');
       return;
@@ -110,7 +139,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       error instanceof Error &&
       (error.message.includes("Can't reach database") ||
        error.message.includes('ECONNREFUSED') ||
-       error.message.includes('P1001'));
+       error.message.includes('P1001') ||
+       error.message.includes('P2021') ||
+       error.message.includes('does not exist') ||
+       (error as any).code === 'P1001' ||
+       (error as any).code === 'P2021');
 
     if (isDbDown && process.env.NODE_ENV === 'development') {
       const { email, password } = parsed.data;

@@ -12,7 +12,7 @@ const BCRYPT_ROUNDS = 12;
 export const registerUser = async (
   input: RegisterInput
 ): Promise<{ user: UserPayload; tokens: TokenPair }> => {
-  const { name, email, password, organizationName } = input;
+  const { name, email, password, organizationName, department, role } = input;
 
   // Check if user exists
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -20,40 +20,98 @@ export const registerUser = async (
     throw new Error('EMAIL_EXISTS');
   }
 
+  // Enforce business email domain
+  const FREE_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'zoho.com', 'proton.me', 'icloud.com'];
+  const domain = email.split('@')[1]?.toLowerCase();
+  if (!domain || FREE_DOMAINS.includes(domain)) {
+    throw new Error('BUSINESS_EMAIL_ONLY');
+  }
+
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
-  // Create user + org in a transaction
-  const result = await prisma.$transaction(async (tx) => {
-    const user = await tx.user.create({
-      data: { name, email, passwordHash },
-    });
-
-    const orgName = organizationName || `${name}'s Organization`;
-    const org = await tx.organization.create({
-      data: {
-        name: orgName,
-        ownerId: user.id,
-      },
-    });
-
-    await tx.orgMember.create({
-      data: {
-        userId: user.id,
-        organizationId: org.id,
-        role: 'owner',
-      },
-    });
-
-    return { user, org };
+  // Search if organization exists for this domain
+  const existingOrg = await prisma.organization.findFirst({
+    where: { domain },
   });
 
-  logger.info(`New user registered: ${email}`);
+  let userStatus = 'APPROVED';
+  if (existingOrg) {
+    // Company workspace already exists -> user is pending approval
+    userStatus = 'PENDING';
+  } else {
+    // New company workspace -> only CTO or Admin can create it
+    if (role !== 'CTO' && role !== 'Admin') {
+      throw new Error('ADMIN_REQUIRED_FOR_NEW_WORKSPACE');
+    }
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        name,
+        email,
+        passwordHash,
+        role: role || 'Developer',
+        department: department || 'Engineering',
+        status: userStatus,
+      },
+    });
+
+    let orgId = '';
+    if (existingOrg) {
+      orgId = existingOrg.id;
+      // Add user as pending member to existing organization
+      await tx.orgMember.create({
+        data: {
+          userId: user.id,
+          organizationId: orgId,
+          role: role || 'Developer',
+        },
+      });
+
+      // Log an Approval Request
+      await tx.approvalRequest.create({
+        data: {
+          organizationId: orgId,
+          userId: user.id,
+          action: 'APPROVE_USER',
+          targetId: user.id,
+          status: 'PENDING',
+        },
+      });
+    } else {
+      const orgName = organizationName || `${name}'s Organization`;
+      const org = await tx.organization.create({
+        data: {
+          name: orgName,
+          domain,
+          ownerId: user.id,
+        },
+      });
+      orgId = org.id;
+
+      await tx.orgMember.create({
+        data: {
+          userId: user.id,
+          organizationId: orgId,
+          role: 'owner', // owner role matches workspace setup
+        },
+      });
+    }
+
+    return { user, orgId };
+  });
+
+  logger.info(`New user registered: ${email} (Status: ${userStatus})`);
 
   const userPayload: UserPayload = {
     id: result.user.id,
     email: result.user.email,
     name: result.user.name,
-    organizationId: result.org.id,
+    organizationId: result.orgId,
+    role: result.user.role,
+    department: result.user.department,
+    status: result.user.status,
   };
 
   const tokens = await createTokenPair(userPayload);
@@ -69,7 +127,6 @@ export const loginUser = async (
     where: { email },
     include: {
       memberships: {
-        where: { role: 'owner' },
         take: 1,
       },
     },
@@ -91,6 +148,9 @@ export const loginUser = async (
     email: user.email,
     name: user.name,
     organizationId: user.memberships[0]?.organizationId,
+    role: user.role,
+    department: user.department,
+    status: user.status,
   };
 
   const tokens = await createTokenPair(userPayload);
@@ -129,5 +189,8 @@ export const getProfile = async (userId: string): Promise<UserPayload> => {
     email: user.email,
     name: user.name,
     organizationId: user.memberships[0]?.organizationId,
+    role: user.role,
+    department: user.department,
+    status: user.status,
   };
 };

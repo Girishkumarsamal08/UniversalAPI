@@ -1,9 +1,7 @@
 // Mock Provider Adapter — Returns realistic mock data
 // Used in development and as fallback when no real provider is connected
-// Swayamsuchee will replace this with real HubSpot/Salesforce/Pipedrive connectors
-
 import { CRMProvider, ProviderQueryOptions, CreateContactData, CreateCompanyData } from './crm.provider.interface';
-import { Contact, Company } from '../schemas/unified.types';
+import { Contact, Company, Deal } from '../schemas/unified.types';
 import { v4 as uuidv4 } from 'uuid';
 
 const MOCK_CONTACTS: Contact[] = [
@@ -19,6 +17,12 @@ const MOCK_COMPANIES: Company[] = [
   { id: uuidv4(), externalId: 'mock-co-002', name: 'Enterprise Solutions', website: 'https://enterprise.io', industry: 'Consulting', size: '500-1000', provider: 'mock' },
   { id: uuidv4(), externalId: 'mock-co-003', name: 'StartupXYZ', website: 'https://startup.xyz', industry: 'Fintech', size: '10-50', provider: 'mock' },
   { id: uuidv4(), externalId: 'mock-co-004', name: 'Global Markets Ltd', website: 'https://globalmarkets.com', industry: 'Finance', size: '1000+', provider: 'mock' },
+];
+
+const MOCK_DEALS: Deal[] = [
+  { id: uuidv4(), externalId: 'mock-d-001', title: 'Enterprise Contract 2026', amount: 120000, stage: 'Qualified', provider: 'mock' },
+  { id: uuidv4(), externalId: 'mock-d-002', title: 'TechCorp Software Licensing', amount: 45000, stage: 'Negotiation', provider: 'mock' },
+  { id: uuidv4(), externalId: 'mock-d-003', title: 'SME Pilot Agreement', amount: 12000, stage: 'Closed Won', provider: 'mock' },
 ];
 
 export class MockAdapter implements CRMProvider {
@@ -94,6 +98,18 @@ export class MockAdapter implements CRMProvider {
     };
     MOCK_COMPANIES.push(newCompany);
     return newCompany;
+  }
+
+  async getDeals(options?: ProviderQueryOptions): Promise<Deal[]> {
+    let deals = [...MOCK_DEALS];
+    if (options?.search) {
+      const search = options.search.toLowerCase();
+      deals = deals.filter((d) => d.title.toLowerCase().includes(search));
+    }
+    const page = options?.page || 1;
+    const limit = options?.limit || 20;
+    const start = (page - 1) * limit;
+    return deals.slice(start, start + limit);
   }
 
   async testConnection(): Promise<boolean> {

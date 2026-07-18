@@ -32,9 +32,11 @@ export const getContacts = async (
   }
 
   // Use real DB when available
+  const skip = (page - 1) * limit;
+
   const where = {
     organizationId,
-    ...(provider && provider !== 'all' ? { provider } : {}),
+    ...(provider ? { provider } : {}),
     ...(search
       ? {
           OR: [
@@ -66,6 +68,7 @@ export const getContacts = async (
     organizationId: c.organizationId,
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
+    _raw_passthrough: c.rawData ?? undefined,
   }));
 
   return {
@@ -102,6 +105,7 @@ export const getContactById = async (
     organizationId: contact.organizationId,
     createdAt: contact.createdAt.toISOString(),
     updatedAt: contact.updatedAt.toISOString(),
+    _raw_passthrough: contact.rawData ?? undefined,
   };
 };
 
@@ -123,6 +127,7 @@ export const createContact = async (
       phone: created.phone,
       jobTitle: created.jobTitle,
       organizationId,
+      rawData: created._raw_passthrough || null,
     },
   });
 
@@ -139,5 +144,6 @@ export const createContact = async (
     organizationId: saved.organizationId,
     createdAt: saved.createdAt.toISOString(),
     updatedAt: saved.updatedAt.toISOString(),
+    _raw_passthrough: saved.rawData ?? undefined,
   };
 };

@@ -3,6 +3,7 @@
 import 'dotenv/config';
 import { createApp } from './app';
 import { connectDatabase, disconnectDatabase } from './database/prisma.client';
+import { startProactiveRefreshScheduler } from './modules/integrations/integration.service';
 import { logger } from './utils/logger';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -16,6 +17,9 @@ const startServer = async (): Promise<void> => {
       logger.warn('⚠️  Database unavailable — starting in MOCK MODE (no DB required for mock data)');
       logger.warn('   Set DATABASE_URL in .env and restart to enable full functionality.');
     }
+
+    // Start background OAuth refresh daemon
+    startProactiveRefreshScheduler();
 
     const app = createApp();
 
