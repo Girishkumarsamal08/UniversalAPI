@@ -20,12 +20,8 @@ export const registerUser = async (
     throw new Error('EMAIL_EXISTS');
   }
 
-  // Enforce business email domain
-  const FREE_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'zoho.com', 'proton.me', 'icloud.com'];
-  const domain = email.split('@')[1]?.toLowerCase();
-  if (!domain || FREE_DOMAINS.includes(domain)) {
-    throw new Error('BUSINESS_EMAIL_ONLY');
-  }
+  // Extract email domain (allow all personal & enterprise domain providers)
+  const domain = email.split('@')[1]?.toLowerCase() || 'workspace.io';
 
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
@@ -36,13 +32,8 @@ export const registerUser = async (
 
   let userStatus = 'APPROVED';
   if (existingOrg) {
-    // Company workspace already exists -> user is pending approval
-    userStatus = 'PENDING';
-  } else {
-    // New company workspace -> only CTO or Admin can create it
-    if (role !== 'CTO' && role !== 'Admin') {
-      throw new Error('ADMIN_REQUIRED_FOR_NEW_WORKSPACE');
-    }
+    // If company workspace already exists, user joins the org
+    userStatus = 'APPROVED';
   }
 
   const result = await prisma.$transaction(async (tx) => {
@@ -51,7 +42,7 @@ export const registerUser = async (
         name,
         email,
         passwordHash,
-        role: role || 'Developer',
+        role: role || 'Employee',
         department: department || 'Engineering',
         status: userStatus,
       },
@@ -65,7 +56,7 @@ export const registerUser = async (
         data: {
           userId: user.id,
           organizationId: orgId,
-          role: role || 'Developer',
+          role: role || 'Employee',
         },
       });
 
@@ -193,4 +184,16 @@ export const getProfile = async (userId: string): Promise<UserPayload> => {
     department: user.department,
     status: user.status,
   };
+};
+
+export const updatePasswordByEmail = async (email: string, newPassword: string): Promise<void> => {
+  const user = await prisma.user.findFirst({ where: { email } });
+  if (!user) {
+    throw new Error('USER_NOT_FOUND');
+  }
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash },
+  });
 };

@@ -20,18 +20,15 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   CTO: ['view_dashboard', 'manage_integrations', 'delete_integrations', 'view_billing', 'manage_users', 'view_security', 'view_audit_logs', 'view_analytics', 'use_playground', 'approve_requests', 'view_regional_perf', 'manage_teams', 'view_deployments', 'view_sprints', 'view_projects', 'view_logs', 'view_docs', 'view_testing', 'view_support'],
   Admin: ['view_dashboard', 'manage_integrations', 'view_billing', 'manage_users', 'view_security', 'view_audit_logs', 'view_analytics', 'use_playground', 'approve_requests', 'manage_teams', 'view_projects', 'view_logs', 'view_docs'],
   'Regional Head': ['view_dashboard', 'view_regional_perf', 'manage_users', 'view_analytics', 'view_logs', 'view_docs'],
-  'Engineering Manager': ['view_dashboard', 'manage_teams', 'view_deployments', 'view_analytics', 'use_playground', 'view_projects', 'view_logs', 'view_docs'],
-  'Team Lead': ['view_dashboard', 'view_sprints', 'view_deployments', 'use_playground', 'view_projects', 'view_logs', 'view_docs'],
   'Senior Developer': ['view_dashboard', 'use_playground', 'view_projects', 'view_logs', 'view_docs'],
-  Developer: ['view_dashboard', 'use_playground', 'view_projects', 'view_logs', 'view_docs'],
-  'QA Engineer': ['view_dashboard', 'view_testing', 'use_playground', 'view_docs'],
   'Support Engineer': ['view_dashboard', 'view_support', 'use_playground', 'view_docs'],
+  Employee: ['view_dashboard', 'use_playground', 'view_projects', 'view_logs', 'view_docs'],
   Intern: ['view_dashboard', 'view_docs']
 };
 
 export const generateAccessToken = (payload: UserPayload): string => {
-  const role = payload.role || 'Developer';
-  const permissions = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.Developer;
+  const role = payload.role || 'Employee';
+  const permissions = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.Employee;
   
   const tokenPayload = {
     id: payload.id,

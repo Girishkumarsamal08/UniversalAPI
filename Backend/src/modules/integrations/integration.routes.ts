@@ -8,6 +8,7 @@ const router = Router();
 // Expose integrations CRUD
 router.get('/', authMiddleware, IntegrationController.getIntegrations);
 router.get('/:provider/connect', authMiddleware, IntegrationController.connect);
+router.post('/:provider/connect', authMiddleware, IntegrationController.connect);
 router.post('/:provider/disconnect', authMiddleware, IntegrationController.disconnect);
 router.post('/:provider/sync', authMiddleware, IntegrationController.sync);
 

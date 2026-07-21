@@ -35,6 +35,9 @@ export const authMiddleware = (
       email: payload.email,
       name: payload.name,
       organizationId: payload.organizationId,
+      role: payload.role,
+      department: payload.department,
+      status: payload.status,
     };
     next();
   } catch (err: unknown) {
@@ -68,6 +71,9 @@ export const optionalAuthMiddleware = (
         email: payload.email,
         name: payload.name,
         organizationId: payload.organizationId,
+        role: payload.role,
+        department: payload.department,
+        status: payload.status,
       };
     } catch {
       // Silently ignore invalid tokens in optional mode

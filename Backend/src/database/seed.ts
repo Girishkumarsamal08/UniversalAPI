@@ -1,48 +1,78 @@
-// Database seed script — populates dev data
-
+// Database seed script — populates dev data with all roles & fresh initial state
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding database...');
+  console.log('🌱 Clearing old test data and seeding database...');
 
-  // Create demo user
-  const passwordHash = await bcrypt.hash('Password123', 12);
-  const user = await prisma.user.upsert({
-    where: { email: 'admin@unifiedcrm.io' },
-    update: {},
-    create: {
-      name: 'Admin User',
-      email: 'admin@unifiedcrm.io',
-      passwordHash,
-    },
-  });
-  console.log(`✅ User created: ${user.email}`);
+  // Reset existing tokens and logs for a clean fresh state
+  await prisma.refreshToken.deleteMany({}).catch(() => {});
+  await prisma.approvalRequest.deleteMany({}).catch(() => {});
 
-  // Create demo organization
+  const passwordHash = await bcrypt.hash('UnifiedCRM2026!Secured', 12);
+
+  // Seed demo organization
   const org = await prisma.organization.upsert({
     where: { id: 'org-seed-001' },
-    update: {},
+    update: { name: 'Acme Global Enterprise' },
     create: {
       id: 'org-seed-001',
-      name: 'Demo Organization',
-      ownerId: user.id,
+      name: 'Acme Global Enterprise',
+      domain: 'unifiedcrm.io',
+      ownerId: 'seed-user-cto',
     },
   });
-  console.log(`✅ Organization created: ${org.name}`);
+  console.log(`✅ Organization ready: ${org.name}`);
 
-  // Create org membership
-  await prisma.orgMember.upsert({
-    where: { userId_organizationId: { userId: user.id, organizationId: org.id } },
-    update: {},
-    create: {
-      userId: user.id,
-      organizationId: org.id,
-      role: 'owner',
-    },
-  });
+  // Seed users for ALL roles
+  const usersToSeed = [
+    { id: 'seed-user-cto', name: 'Girish Kumar Samal', email: 'cto@unifiedcrm.io', role: 'CTO', dept: 'Engineering' },
+    { id: 'seed-user-ceo', name: 'Alexander Vance', email: 'ceo@unifiedcrm.io', role: 'CEO', dept: 'Executive' },
+    { id: 'seed-user-admin', name: 'Admin User', email: 'admin@unifiedcrm.io', role: 'Admin', dept: 'Operations' },
+    { id: 'seed-user-rhead', name: 'Marcus Brody', email: 'regional.head@unifiedcrm.io', role: 'Regional Head', dept: 'Strategy' },
+    { id: 'seed-user-mgr', name: 'Sophia Martinez', email: 'manager@unifiedcrm.io', role: 'Manager', dept: 'Product Management' },
+    { id: 'seed-user-sdev', name: 'Swayamsuchee Mohanty', email: 'senior.dev@unifiedcrm.io', role: 'Senior Developer', dept: 'Core Backend' },
+    { id: 'seed-user-supp', name: 'Rohan Verma', email: 'support@unifiedcrm.io', role: 'Support Engineer', dept: 'Technical Support' },
+    { id: 'seed-user-sales', name: 'David Miller', email: 'sales@unifiedcrm.io', role: 'Sales Lead', dept: 'Business Development' },
+    { id: 'seed-user-client', name: 'Client Account Manager', email: 'client@unifiedcrm.io', role: 'Client', dept: 'Partner Relations' },
+    { id: 'seed-user-emp', name: 'Jordan Hayes', email: 'employee@unifiedcrm.io', role: 'Employee', dept: 'Software Quality' },
+    { id: 'seed-user-intern', name: 'Lucas Scott', email: 'intern@unifiedcrm.io', role: 'Intern', dept: 'Engineering' },
+  ];
+
+  for (const u of usersToSeed) {
+    const dbUser = await prisma.user.upsert({
+      where: { email: u.email },
+      update: {
+        name: u.name,
+        role: u.role,
+        department: u.dept,
+        status: 'APPROVED',
+        passwordHash,
+      },
+      create: {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        department: u.dept,
+        status: 'APPROVED',
+        passwordHash,
+      },
+    });
+
+    await prisma.orgMember.upsert({
+      where: { userId_organizationId: { userId: dbUser.id, organizationId: org.id } },
+      update: { role: u.role === 'CTO' || u.role === 'CEO' || u.role === 'Admin' ? 'owner' : 'member' },
+      create: {
+        userId: dbUser.id,
+        organizationId: org.id,
+        role: u.role === 'CTO' || u.role === 'CEO' || u.role === 'Admin' ? 'owner' : 'member',
+      },
+    });
+    console.log(`✅ Seeded role account: ${u.role} (${u.email})`);
+  }
 
   // Seed mock contacts
   const contacts = [
@@ -60,7 +90,6 @@ async function main() {
       create: { ...contact, organizationId: org.id },
     });
   }
-  console.log(`✅ ${contacts.length} contacts seeded`);
 
   // Seed mock companies
   const companies = [
@@ -77,12 +106,9 @@ async function main() {
       create: { ...company, organizationId: org.id },
     });
   }
-  console.log(`✅ ${companies.length} companies seeded`);
 
-  console.log('🎉 Database seeded successfully!');
-  console.log('\nDemo credentials:');
-  console.log('  Email: admin@unifiedcrm.io');
-  console.log('  Password: Password123');
+  console.log('🎉 Database reseeded successfully with ALL roles!');
+  console.log('\nDefault Password for all seeded accounts: UnifiedCRM2026!Secured');
 }
 
 main()

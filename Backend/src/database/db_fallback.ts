@@ -18,6 +18,7 @@ interface FallbackSchema {
   projects: any[];
   projectAssignments: any[];
   approvalRequests: any[];
+  documents: any[];
 }
 
 class DatabaseFallback {
@@ -31,7 +32,22 @@ class DatabaseFallback {
     try {
       if (fs.existsSync(DB_FILE)) {
         const raw = fs.readFileSync(DB_FILE, 'utf-8');
-        return JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        return {
+          users: parsed.users || [],
+          organizations: parsed.organizations || [],
+          orgMembers: parsed.orgMembers || [],
+          integrations: parsed.integrations || [],
+          contacts: parsed.contacts || [],
+          companies: parsed.companies || [],
+          deals: parsed.deals || [],
+          apiLogs: parsed.apiLogs || [],
+          refreshTokens: parsed.refreshTokens || [],
+          projects: parsed.projects || [],
+          projectAssignments: parsed.projectAssignments || [],
+          approvalRequests: parsed.approvalRequests || [],
+          documents: parsed.documents || [],
+        };
       }
     } catch (err) {
       logger.error('Failed to read local fallback database file:', err);
@@ -43,7 +59,7 @@ class DatabaseFallback {
           id: 'dev-mock-user-001',
           email: 'admin@unifiedcrm.io',
           name: 'Admin User',
-          passwordHash: '$2a$10$aqUKNg98ErZ8ly1zu54l..bzgRUT9Wa68AmgwuaSpcvE05p9qKIAO', // mock bcrypt hash for Password123
+          passwordHash: '$2a$10$bMPdlWrre.Bw/F5oztARGOn4aHfL43bP9g35Oo8Vmvx3eZeu.GjZ2', // mock bcrypt hash for UnifiedCRM2026!Secured
           role: 'CTO',
           department: 'Engineering',
           status: 'APPROVED',
@@ -94,7 +110,8 @@ class DatabaseFallback {
           assignedAt: new Date().toISOString()
         }
       ],
-      approvalRequests: []
+      approvalRequests: [],
+      documents: []
     };
     this.saveDatabase(defaultData);
     return defaultData;
@@ -117,14 +134,18 @@ class DatabaseFallback {
         const where = args?.where || {};
         const records = self.data[tableName];
         const match = records.find(r => self.matchQuery(r, where));
-        return match ? self.clone(match) : null;
+        if (!match) return null;
+        const cloned = self.clone(match);
+        return self.resolveIncludes(tableName, cloned, args?.include);
       },
       async findFirst(args: any) {
         self.data = self.loadDatabase();
         const where = args?.where || {};
         const records = self.data[tableName];
         const match = records.find(r => self.matchQuery(r, where));
-        return match ? self.clone(match) : null;
+        if (!match) return null;
+        const cloned = self.clone(match);
+        return self.resolveIncludes(tableName, cloned, args?.include);
       },
       async findMany(args: any) {
         self.data = self.loadDatabase();
@@ -157,7 +178,10 @@ class DatabaseFallback {
           records = records.slice(0, args.take);
         }
         
-        return self.clone(records);
+        return records.map(r => {
+          const cloned = self.clone(r);
+          return self.resolveIncludes(tableName, cloned, args?.include);
+        });
       },
       async create(args: any) {
         self.data = self.loadDatabase();
@@ -370,6 +394,41 @@ class DatabaseFallback {
     return true;
   }
 
+  private resolveIncludes(tableName: string, record: any, include: any): any {
+    if (!record || !include) return record;
+
+    if (tableName === 'users' && include.memberships) {
+      const orgMembers = this.data.orgMembers || [];
+      let matches = orgMembers.filter(m => m.userId === record.id);
+      if (typeof include.memberships === 'object' && include.memberships.take) {
+        matches = matches.slice(0, include.memberships.take);
+      }
+      record.memberships = matches.map(m => this.clone(m));
+    }
+
+    if (tableName === 'refreshTokens' && include.user) {
+      const users = this.data.users || [];
+      const userMatch = users.find(u => u.id === record.userId);
+      if (userMatch) {
+        const clonedUser = this.clone(userMatch);
+        if (typeof include.user === 'object' && include.user.include) {
+          this.resolveIncludes('users', clonedUser, include.user.include);
+        }
+        record.user = clonedUser;
+      }
+    }
+
+    if (tableName === 'projectAssignments' && include.project) {
+      const projects = this.data.projects || [];
+      const projMatch = projects.find(p => p.id === record.projectId);
+      if (projMatch) {
+        record.project = this.clone(projMatch);
+      }
+    }
+
+    return record;
+  }
+
   // Expose root model proxies
   get user() { return this.createModelProxy('users'); }
   get organization() { return this.createModelProxy('organizations'); }
@@ -384,6 +443,7 @@ class DatabaseFallback {
   get project() { return this.createModelProxy('projects'); }
   get projectAssignment() { return this.createModelProxy('projectAssignments'); }
   get approvalRequest() { return this.createModelProxy('approvalRequests'); }
+  get document() { return this.createModelProxy('documents'); }
 
   // Expose top level helper functions
   async $connect() { return Promise.resolve(); }

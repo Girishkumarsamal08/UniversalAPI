@@ -9,9 +9,14 @@ export default defineConfig({
     proxy: {
       // Forward /api/* to the Node.js backend
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://127.0.0.1:3000',
         changeOrigin: true,
         secure: false,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            // Suppress spurious ECONNREFUSED terminal spam when backend is starting/restarting
+          });
+        },
       },
     },
   },

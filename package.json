@@ -4,7 +4,9 @@
   "scripts": {
     "frontend": "cd Frontend && npm run dev",
     "backend": "cd Backend && npm run dev",
-    "dev": "concurrently \"npm run backend\" \"npm run frontend\""
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "prisma:generate": "npm run --prefix Backend prisma:generate",
+    "tsc:backend": "npm run --prefix Backend build"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

@@ -19,6 +19,8 @@ import integrationRoutes from './modules/integrations/integration.routes';
 import dealsRoutes from './deals/deals.routes';
 import approvalRoutes from './auth/approval.routes';
 import projectRoutes from './projects/project.routes';
+import erpRoutes from './modules/erp/erp.routes';
+import documentRoutes from './modules/documents/document.routes';
 
 export const createApp = (): Express => {
   const app = express();
@@ -94,6 +96,8 @@ export const createApp = (): Express => {
   app.use(`${API_PREFIX}/integrations`, integrationRoutes);
   app.use(`${API_PREFIX}/approvals`, approvalRoutes);
   app.use(`${API_PREFIX}/projects`, projectRoutes);
+  app.use(`${API_PREFIX}/erp`, erpRoutes);
+  app.use(`${API_PREFIX}/documents`, documentRoutes);
 
   // ─────────────────────────────────────────────
   // Error Handling (must be last)

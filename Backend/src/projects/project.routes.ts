@@ -19,7 +19,7 @@ router.get('/', async (req: Request, res: Response) => {
       return;
     }
 
-    const isDeveloper = req.user?.role === 'Developer' || req.user?.role === 'Intern';
+    const isDeveloper = req.user?.role === 'Employee' || req.user?.role === 'Senior Developer' || req.user?.role === 'Intern';
 
     let projects;
     if (isDeveloper) {

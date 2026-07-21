@@ -57,26 +57,45 @@ export const getIntegrationsForUser = async (userId: string, organizationId?: st
     where: { userId: { in: userIds } },
   });
 
-  const providersList = ['hubspot', 'salesforce', 'pipedrive', 'mock'];
-  return providersList.map((provider) => {
+  const defaultProviders = [
+    'hubspot', 'salesforce', 'pipedrive', 'zoho', 'merge', 'unifiedto',
+    'gmail', 'outlook_mail',
+    'google_calendar', 'outlook_calendar',
+    'razorpay', 'paypal', 'online_banking',
+    'shopify', 'flipkart', 'amazon',
+    'zapier', 'slack',
+    'mock'
+  ];
+
+  const allProviderKeys = Array.from(new Set([...defaultProviders, ...dbConnections.map(c => c.provider)]));
+
+  return allProviderKeys.map((provider) => {
     const conn = dbConnections.find((c) => c.provider === provider);
-    
-    // Set capabilities and details
-    let capabilities = ['Contacts', 'Companies'];
-    if (provider === 'hubspot' || provider === 'salesforce' || provider === 'mock') {
-      capabilities.push('Deals');
+    const isMock = provider === 'mock';
+    const currentStatus: IntegrationStatus = (conn?.status as IntegrationStatus) || (isMock ? 'Connected' : 'Not Connected');
+
+    let capabilities = ['Sync Data', 'Webhooks'];
+    if (['hubspot', 'salesforce', 'pipedrive', 'zoho', 'mock'].includes(provider)) {
+      capabilities = ['Contacts', 'Companies', 'Deals'];
+    } else if (['gmail', 'outlook_mail'].includes(provider)) {
+      capabilities = ['Email Threads', 'Outreach Logs', 'Delivery Tracking'];
+    } else if (['google_calendar', 'outlook_calendar'].includes(provider)) {
+      capabilities = ['Calendar Events', 'Availability Slots', 'Booking Sync'];
+    } else if (['razorpay', 'paypal', 'online_banking'].includes(provider)) {
+      capabilities = ['Payment Transactions', 'Merchant Ledger', 'Payout Webhooks'];
+    } else if (['shopify', 'flipkart', 'amazon'].includes(provider)) {
+      capabilities = ['Customer Orders', 'Product Catalogs', 'Inventory Ledger'];
     }
-    capabilities.push('Tasks'); // placeholder capability
 
     return {
       id: conn?.id || `new-${provider}`,
       provider,
-      status: provider === 'mock' ? 'Connected' : ((conn?.status as IntegrationStatus) || 'Not Connected'),
-      connectedAt: provider === 'mock' ? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() : (conn?.connectedAt?.toISOString() || ''),
-      lastSyncedAt: provider === 'mock' ? new Date(Date.now() - 10 * 60 * 1000).toISOString() : (conn?.lastSyncedAt?.toISOString() || undefined),
-      connectedAccount: provider === 'mock' ? 'local@dev-sandbox' : (conn ? 'admin@unifiedcrm.io' : undefined),
+      status: currentStatus,
+      connectedAt: conn?.connectedAt?.toISOString() || (isMock ? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() : new Date().toISOString()),
+      lastSyncedAt: conn?.lastSyncedAt?.toISOString() || (isMock ? new Date(Date.now() - 10 * 60 * 1000).toISOString() : undefined),
+      connectedAccount: (conn as any)?.connectedAccount || (isMock ? `${provider}@unifiedcrm.io` : undefined),
       capabilities,
-      oauthVersion: provider === 'mock' ? 'Mock Mode' : 'OAuth 2.0',
+      oauthVersion: isMock ? 'Mock Mode' : 'OAuth 2.0 / API Key',
     };
   });
 };

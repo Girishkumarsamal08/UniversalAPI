@@ -23,7 +23,7 @@ const startServer = async (): Promise<void> => {
 
     const app = createApp();
 
-    const server = app.listen(PORT, () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
       logger.info(`
 ╔═══════════════════════════════════════════════════╗
 ║           🔗 Unified CRM API Server               ║

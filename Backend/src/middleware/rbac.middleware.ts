@@ -27,7 +27,7 @@ export const requirePermission = (permission: string) => {
     }
 
     // Retrieve permissions for the user's role
-    const permissions = ROLE_PERMISSIONS[user.role || 'Developer'] || ROLE_PERMISSIONS.Developer;
+    const permissions = ROLE_PERMISSIONS[user.role || 'Employee'] || ROLE_PERMISSIONS.Employee;
 
     if (!permissions.includes(permission)) {
       sendForbidden(res, `Forbidden. Missing required permission: ${permission}`);

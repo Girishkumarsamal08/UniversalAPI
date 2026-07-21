@@ -1,7 +1,7 @@
 // Auth Controller — HTTP layer for auth routes
 
 import { Request, Response } from 'express';
-import { RegisterSchema, LoginSchema, RefreshTokenSchema } from '../schemas/validation.schemas';
+import { RegisterSchema, LoginSchema, RefreshTokenSchema, ForgotPasswordSchema, ResetPasswordSchema } from '../schemas/validation.schemas';
 import * as AuthService from '../services/auth.service';
 import {
   sendSuccess,
@@ -48,7 +48,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   const parsed = RegisterSchema.safeParse(req.body);
   if (!parsed.success) {
     const errors = parsed.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`);
-    sendBadRequest(res, 'Validation failed', errors);
+    const detailedMessage = errors.length > 0 ? errors.join(' | ') : 'Validation failed';
+    sendBadRequest(res, detailedMessage, errors);
     return;
   }
 
@@ -85,9 +86,19 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    if (error instanceof Error && error.message === 'EMAIL_EXISTS') {
-      sendBadRequest(res, 'Email already registered');
-      return;
+    if (error instanceof Error) {
+      if (error.message === 'EMAIL_EXISTS') {
+        sendBadRequest(res, 'Email already registered');
+        return;
+      }
+      if (error.message === 'BUSINESS_EMAIL_ONLY') {
+        sendBadRequest(res, 'A valid business email domain is required.');
+        return;
+      }
+      if (error.message === 'ADMIN_REQUIRED_FOR_NEW_WORKSPACE') {
+        sendBadRequest(res, 'Only a CTO or Admin can register a new company workspace.');
+        return;
+      }
     }
     logger.error('Register error:', error);
     sendError(res, 'Registration failed');
@@ -120,7 +131,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
  */
 // Demo credentials for no-DB dev mode
 const DEMO_EMAIL    = 'admin@unifiedcrm.io';
-const DEMO_PASSWORD = 'Password123';
+const DEMO_PASSWORD = 'UnifiedCRM2026!Secured';
 
 export const login = async (req: Request, res: Response): Promise<void> => {
   const parsed = LoginSchema.safeParse(req.body);
@@ -265,5 +276,71 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     logger.error('GetMe error:', error);
     sendError(res, 'Failed to fetch profile');
+  }
+};
+
+// Memory Map for reset codes (email -> { code, expires })
+const resetCodes = new Map<string, { code: string; expires: Date }>();
+
+export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
+  const parsed = ForgotPasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const errors = parsed.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`);
+    sendBadRequest(res, 'Validation failed', errors);
+    return;
+  }
+
+  const { email } = parsed.data;
+  try {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    resetCodes.set(email.toLowerCase(), { code, expires });
+    logger.info(`[PASSWORD RESET] Generated verification code for ${email}: ${code}`);
+
+    sendSuccess(res, { devCode: code }, 'Password reset code generated.');
+  } catch (error) {
+    logger.error('ForgotPassword error:', error);
+    sendError(res, 'Failed to process forgot password request');
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+  const parsed = ResetPasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const errors = parsed.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`);
+    sendBadRequest(res, 'Validation failed', errors);
+    return;
+  }
+
+  const { email, code, newPassword } = parsed.data;
+  const entry = resetCodes.get(email.toLowerCase());
+
+  if (!entry) {
+    sendBadRequest(res, 'No reset code has been requested for this email.');
+    return;
+  }
+
+  if (entry.code !== code) {
+    sendBadRequest(res, 'Invalid verification code.');
+    return;
+  }
+
+  if (entry.expires < new Date()) {
+    sendBadRequest(res, 'Verification code has expired. Please request a new one.');
+    return;
+  }
+
+  try {
+    await AuthService.updatePasswordByEmail(email, newPassword);
+    resetCodes.delete(email.toLowerCase());
+    sendSuccess(res, null, 'Password reset successful. You can now log in.');
+  } catch (error: any) {
+    if (error.message === 'USER_NOT_FOUND') {
+      sendBadRequest(res, 'No account found with this email address.');
+      return;
+    }
+    logger.error('ResetPassword error:', error);
+    sendError(res, 'Failed to reset password.');
   }
 };
