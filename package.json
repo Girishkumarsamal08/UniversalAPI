@@ -6,7 +6,8 @@
     "backend": "cd Backend && npm run dev",
     "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
     "prisma:generate": "npm run --prefix Backend prisma:generate",
-    "tsc:backend": "npm run --prefix Backend build"
+    "tsc:backend": "npm run --prefix Backend build",
+    "build": "npm run --prefix Frontend build"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

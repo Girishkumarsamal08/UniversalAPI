@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import DocumentParser from './components/DocumentParser';
 
-const API_BASE_URL = '/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 let AUTH_TOKEN = localStorage.getItem('unified_token') || '';
 
 const api = axios.create({ baseURL: API_BASE_URL, headers: { 'Content-Type': 'application/json' }, timeout: 10000 });

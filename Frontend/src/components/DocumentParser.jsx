@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 
-const API_BASE_URL = '/api/v1/documents';
+const API_BASE_URL = (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL + '/documents' : '/api/v1/documents');
 
 const SAMPLE_DOCS = [
   {
