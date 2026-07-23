@@ -5435,7 +5435,18 @@ run();`}</pre>
         {/* Footer */}
         <footer style={{ marginTop: '56px', textAlign: 'center', borderTop: '1px solid rgba(48,54,61,0.4)', paddingTop: '28px' }}>
           <p style={{ color: '#484f58', fontSize: '0.78rem', margin: 0 }}>
-            Powered by Universal API · <a href="http://localhost:3000/api/docs" target="_blank" rel="noreferrer" style={{ color: '#58a6ff', textDecoration: 'none' }}>API Docs ↗</a>
+            Powered by Universal API · <span onClick={() => {
+              if (currentUser) {
+                setActiveTab('docs');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              } else {
+                setIsAiAssistantOpen(true);
+                setAiMessages(prev => [
+                  ...prev,
+                  { sender: 'assistant', text: "Here is the interactive REST API reference guide for the Universal API:\n\n• GET /api/v1/companies (Fetch companies)\n• POST /api/v1/companies (Create company)\n• GET /api/v1/contacts (Fetch contacts)\n• POST /api/v1/contacts (Create contact)\n\nAll endpoints require a Bearer token authorization header. Please authenticate first by using the 'Demo Autofill' sign-in button, then select the 'Documentation' tab in the navigation menu to test endpoints and copy code snippets for cURL, JS, Go, and Python!" }
+                ]);
+              }
+            }} style={{ color: '#58a6ff', textDecoration: 'none', cursor: 'pointer' }}>API Docs ↗</span>
           </p>
         </footer>
       </div>
