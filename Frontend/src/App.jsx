@@ -928,12 +928,7 @@ export default function App() {
   const [isAiAssistantOpen, setIsAiAssistantOpen] = useState(false);
   const [aiInput, setAiInput] = useState('');
   const [isAiTyping, setIsAiTyping] = useState(false);
-  const [aiMessages, setAiMessages] = useState([
-    {
-      sender: 'assistant',
-      text: "👋 Hi there! I'm your Universal API Assistant. I can help guide you through our platform features, explain our database encryption, help with integrations, or walk you through the API Playground. How can I help you today?"
-    }
-  ]);
+  const [aiMessages, setAiMessages] = useState([]);
 
   // API Log Filter States
   const [logSearch, setLogSearch] = useState('');
@@ -1067,6 +1062,17 @@ export default function App() {
 
   useEffect(() => { if (isLoggedIn) fetchData(); }, [isLoggedIn, fetchData]);
 
+  useEffect(() => {
+    setAiMessages([
+      {
+        sender: 'assistant',
+        text: !isLoggedIn 
+          ? "👋 Hi there! I'm your Universal API Assistant. You are currently logged out. Please click 'Access Console' or register a new workspace to sign in. Once signed in, you will unlock full CRM API features, dynamic sandboxes, telemetries, and playground tools! Let me know if you need help with anything."
+          : "👋 Hi there! I'm your Universal API Assistant. I can help guide you through our platform features, explain our database encryption, help with integrations, or walk you through the API Playground. How can I help you today?"
+      }
+    ]);
+  }, [isLoggedIn]);
+
   const handleDeleteCompany = async (id, provider) => {
     if (provider === 'mock') {
       setCompanies(prev => prev.filter(c => c.id !== id));
@@ -1169,6 +1175,140 @@ export default function App() {
       setAiMessages(prev => [...prev, { sender: 'assistant', text: reply }]);
       setIsAiTyping(false);
     }, 900);
+  };
+
+  const renderFloatingAiAssistant = () => {
+    return (
+      <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
+        <style>{`
+          @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(31,111,235,0.6); }
+            70% { box-shadow: 0 0 0 10px rgba(31,111,235,0); }
+            100% { box-shadow: 0 0 0 0 rgba(31,111,235,0); }
+          }
+        `}</style>
+        
+        {/* Chat Window */}
+        {isAiAssistantOpen && (
+          <div style={{
+            width: '350px', height: '480px', background: '#161b22',
+            border: '1px solid rgba(48,54,61,0.9)', borderRadius: '14px',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column',
+            overflow: 'hidden', backdropFilter: 'blur(10px)', textAlign: 'left'
+          }}>
+            {/* Header */}
+            <div style={{
+              background: 'linear-gradient(135deg, #1f6feb, #8b5cf6)',
+              padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2ed573', boxShadow: '0 0 6px #2ed573' }} />
+                <span style={{ color: 'white', fontWeight: '800', fontSize: '0.85rem' }}>Universal API Assistant</span>
+              </div>
+              <button onClick={() => setIsAiAssistantOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold' }}>✕</button>
+            </div>
+
+            {/* Chat bubbles container */}
+            <div style={{ flex: 1, padding: '16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', background: '#0d1117' }}>
+              {aiMessages.map((msg, idx) => (
+                <div key={idx} style={{
+                  alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                  maxWidth: '85%', padding: '10px 14px', borderRadius: '12px',
+                  background: msg.sender === 'user' ? '#1f6feb' : 'rgba(33,38,45,0.8)',
+                  color: '#e6edf3', fontSize: '0.78rem', lineHeight: '1.4',
+                  whiteSpace: 'pre-wrap', border: msg.sender === 'user' ? 'none' : '1px solid rgba(48,54,61,0.5)'
+                }}>
+                  {msg.text}
+                </div>
+              ))}
+              {isAiTyping && (
+                <div style={{ alignSelf: 'flex-start', background: 'rgba(33,38,45,0.8)', padding: '10px 14px', borderRadius: '12px', display: 'flex', gap: '4px', border: '1px solid rgba(48,54,61,0.5)' }}>
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#8b949e', animation: 'pulse 1s infinite alternate' }} />
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#8b949e', animation: 'pulse 1s infinite alternate 0.2s' }} />
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#8b949e', animation: 'pulse 1s infinite alternate 0.4s' }} />
+                </div>
+              )}
+            </div>
+
+            {/* Preselected Suggestions */}
+            <div style={{
+              display: 'flex', gap: '6px', padding: '10px 12px', overflowX: 'auto',
+              borderTop: '1px solid rgba(48,54,61,0.4)', background: '#161b22', whiteSpace: 'nowrap'
+            }}>
+              {[
+                "🚀 Platform benefits?",
+                "🔒 Security/Encryption?",
+                "🔌 HubSpot/CRM sync?",
+                "🧪 API Playground?",
+                "📁 VS Code logs?"
+              ].map((s, idx) => (
+                <button key={idx} onClick={() => handleSendAiMessage(s.replace(/[^a-zA-Z\s]/g, '').trim())}
+                  style={{
+                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(48,54,61,0.8)',
+                    borderRadius: '16px', color: '#c9d1d9', padding: '6px 12px',
+                    fontSize: '0.72rem', fontWeight: '600', cursor: 'pointer', flexShrink: 0
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+
+            {/* Input bar */}
+            <form onSubmit={(e) => { e.preventDefault(); handleSendAiMessage(); }}
+              style={{ display: 'flex', padding: '10px', background: '#0d1117', borderTop: '1px solid rgba(48,54,61,0.4)' }}>
+              <input
+                type="text"
+                placeholder="Ask assistant about CRM APIs..."
+                value={aiInput}
+                onChange={e => setAiInput(e.target.value)}
+                style={{
+                  flex: 1, padding: '8px 12px', background: 'rgba(7,9,14,0.6)',
+                  border: '1px solid rgba(48,54,61,0.8)', borderRadius: '6px',
+                  color: '#e6edf3', fontSize: '0.78rem', outline: 'none'
+                }}
+              />
+              <button type="submit" style={{
+                marginLeft: '8px', padding: '8px 12px',
+                background: 'linear-gradient(135deg, #1f6feb, #8b5cf6)',
+                color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer',
+                fontWeight: '700', fontSize: '0.78rem'
+              }}>Send</button>
+            </form>
+          </div>
+        )}
+
+        {/* Circle Toggle Button */}
+        <button onClick={() => setIsAiAssistantOpen(!isAiAssistantOpen)} style={{
+          width: '50px', height: '50px', borderRadius: '50%',
+          background: 'linear-gradient(135deg, #1f6feb, #8b5cf6)',
+          border: 'none', color: 'white', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 8px 24px rgba(31,111,235,0.4)',
+          transition: 'transform 0.2s',
+          animation: 'pulse-glow 2.5s infinite'
+        }}
+          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'}
+          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          {isAiAssistantOpen ? (
+            <X size={20} />
+          ) : (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2v2" />
+              <rect x="4" y="6" width="16" height="12" rx="2" />
+              <circle cx="9" cy="11" r="1.2" fill="currentColor" />
+              <circle cx="15" cy="11" r="1.2" fill="currentColor" />
+              <path d="M9 15h6" />
+              <path d="M2 12h2" />
+              <path d="M20 12h2" />
+            </svg>
+          )}
+        </button>
+      </div>
+    );
   };
 
   // Feature Matrix: Run Encryption simulation
@@ -2169,6 +2309,7 @@ export default function App() {
               </div>
             </div>
           </footer>
+          {renderFloatingAiAssistant()}
         </div>
       );
     }
@@ -2438,6 +2579,7 @@ export default function App() {
             )}
           </div>
         </div>
+        {renderFloatingAiAssistant()}
       </div>
     );
   }
@@ -4993,123 +5135,7 @@ run();`}</pre>
         )}
 
         {/* Floating AI Assistant Onboarding Widget */}
-        <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
-          <style>{`
-            @keyframes pulse-glow {
-              0% { box-shadow: 0 0 0 0 rgba(31,111,235,0.6); }
-              70% { box-shadow: 0 0 0 10px rgba(31,111,235,0); }
-              100% { box-shadow: 0 0 0 0 rgba(31,111,235,0); }
-            }
-          `}</style>
-          
-          {/* Chat Window */}
-          {isAiAssistantOpen && (
-            <div style={{
-              width: '350px', height: '480px', background: '#161b22',
-              border: '1px solid rgba(48,54,61,0.9)', borderRadius: '14px',
-              boxShadow: '0 12px 40px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column',
-              overflow: 'hidden', backdropFilter: 'blur(10px)'
-            }}>
-              {/* Header */}
-              <div style={{
-                background: 'linear-gradient(135deg, #1f6feb, #8b5cf6)',
-                padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2ed573', boxShadow: '0 0 6px #2ed573' }} />
-                  <span style={{ color: 'white', fontWeight: '800', fontSize: '0.85rem' }}>Universal API Assistant</span>
-                </div>
-                <button onClick={() => setIsAiAssistantOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold' }}>✕</button>
-              </div>
-
-              {/* Chat bubbles container */}
-              <div style={{ flex: 1, padding: '16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', background: '#0d1117' }}>
-                {aiMessages.map((msg, idx) => (
-                  <div key={idx} style={{
-                    alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start',
-                    maxWidth: '85%', padding: '10px 14px', borderRadius: '12px',
-                    background: msg.sender === 'user' ? '#1f6feb' : 'rgba(33,38,45,0.8)',
-                    color: '#e6edf3', fontSize: '0.78rem', lineHeight: '1.4',
-                    whiteSpace: 'pre-wrap', border: msg.sender === 'user' ? 'none' : '1px solid rgba(48,54,61,0.5)'
-                  }}>
-                    {msg.text}
-                  </div>
-                ))}
-                {isAiTyping && (
-                  <div style={{ alignSelf: 'flex-start', background: 'rgba(33,38,45,0.8)', padding: '10px 14px', borderRadius: '12px', display: 'flex', gap: '4px', border: '1px solid rgba(48,54,61,0.5)' }}>
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#8b949e', animation: 'pulse 1s infinite alternate' }} />
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#8b949e', animation: 'pulse 1s infinite alternate 0.2s' }} />
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#8b949e', animation: 'pulse 1s infinite alternate 0.4s' }} />
-                  </div>
-                )}
-              </div>
-
-              {/* Preselected Suggestions */}
-              <div style={{
-                display: 'flex', gap: '6px', padding: '10px 12px', overflowX: 'auto',
-                borderTop: '1px solid rgba(48,54,61,0.4)', background: '#161b22', whiteSpace: 'nowrap'
-              }}>
-                {[
-                  "🚀 Platform benefits?",
-                  "🔒 Security/Encryption?",
-                  "🔌 HubSpot/CRM sync?",
-                  "🧪 API Playground?",
-                  "📁 VS Code logs?"
-                ].map((s, idx) => (
-                  <button key={idx} onClick={() => handleSendAiMessage(s.replace(/[^a-zA-Z\s]/g, '').trim())}
-                    style={{
-                      background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(48,54,61,0.8)',
-                      borderRadius: '16px', color: '#c9d1d9', padding: '6px 12px',
-                      fontSize: '0.72rem', fontWeight: '600', cursor: 'pointer', flexShrink: 0
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-
-              {/* Input bar */}
-              <form onSubmit={(e) => { e.preventDefault(); handleSendAiMessage(); }}
-                style={{ display: 'flex', padding: '10px', background: '#0d1117', borderTop: '1px solid rgba(48,54,61,0.4)' }}>
-                <input
-                  type="text"
-                  placeholder="Ask assistant about CRM APIs..."
-                  value={aiInput}
-                  onChange={e => setAiInput(e.target.value)}
-                  style={{
-                    flex: 1, padding: '8px 12px', background: 'rgba(7,9,14,0.6)',
-                    border: '1px solid rgba(48,54,61,0.8)', borderRadius: '6px',
-                    color: '#e6edf3', fontSize: '0.78rem', outline: 'none'
-                  }}
-                />
-                <button type="submit" style={{
-                  marginLeft: '8px', padding: '8px 12px',
-                  background: 'linear-gradient(135deg, #1f6feb, #8b5cf6)',
-                  color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer',
-                  fontWeight: '700', fontSize: '0.78rem'
-                }}>Send</button>
-              </form>
-            </div>
-          )}
-
-          {/* Circle Toggle Button */}
-          <button onClick={() => setIsAiAssistantOpen(!isAiAssistantOpen)} style={{
-            width: '50px', height: '50px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, #1f6feb, #8b5cf6)',
-            border: 'none', color: 'white', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 8px 24px rgba(31,111,235,0.4)',
-            transition: 'transform 0.2s',
-            animation: 'pulse-glow 2.5s infinite'
-          }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-          >
-            {isAiAssistantOpen ? <X size={20} /> : <HelpCircle size={20} />}
-          </button>
-        </div>
+        {renderFloatingAiAssistant()}
 
         {/* Footer */}
         <footer style={{ marginTop: '56px', textAlign: 'center', borderTop: '1px solid rgba(48,54,61,0.4)', paddingTop: '28px' }}>
