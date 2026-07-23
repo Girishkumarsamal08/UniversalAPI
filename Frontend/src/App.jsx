@@ -924,6 +924,17 @@ export default function App() {
   });
   const [isAddingCompany, setIsAddingCompany] = useState(false);
 
+  // AI Assistant States
+  const [isAiAssistantOpen, setIsAiAssistantOpen] = useState(false);
+  const [aiInput, setAiInput] = useState('');
+  const [isAiTyping, setIsAiTyping] = useState(false);
+  const [aiMessages, setAiMessages] = useState([
+    {
+      sender: 'assistant',
+      text: "👋 Hi there! I'm your Universal API Assistant. I can help guide you through our platform features, explain our database encryption, help with integrations, or walk you through the API Playground. How can I help you today?"
+    }
+  ]);
+
   // API Log Filter States
   const [logSearch, setLogSearch] = useState('');
   const [logMethod, setLogMethod] = useState('ALL');
@@ -1066,8 +1077,8 @@ export default function App() {
       await api.delete(`/companies/${id}`);
       showToast('🏢 Company removed successfully', 'success');
       setCompanies(prev => prev.filter(c => c.id !== id));
-      api.get('/analytics').then(r => setAnalytics(r.data?.data || null)).catch(() => {});
-      api.get('/logs?limit=50').then(r => setLogs(r.data?.data || [])).catch(() => {});
+      api.get('/analytics').then(r => setAnalytics(r.data?.data || null)).catch(() => { });
+      api.get('/logs?limit=50').then(r => setLogs(r.data?.data || [])).catch(() => { });
     } catch (err) {
       showToast('❌ Failed to delete company: ' + (err.response?.data?.message || err.message), 'error');
     }
@@ -1083,8 +1094,8 @@ export default function App() {
       await api.delete(`/contacts/${id}`);
       showToast('👤 Contact removed successfully', 'success');
       setContacts(prev => prev.filter(c => c.id !== id));
-      api.get('/analytics').then(r => setAnalytics(r.data?.data || null)).catch(() => {});
-      api.get('/logs?limit=50').then(r => setLogs(r.data?.data || [])).catch(() => {});
+      api.get('/analytics').then(r => setAnalytics(r.data?.data || null)).catch(() => { });
+      api.get('/logs?limit=50').then(r => setLogs(r.data?.data || [])).catch(() => { });
     } catch (err) {
       showToast('❌ Failed to delete contact: ' + (err.response?.data?.message || err.message), 'error');
     }
@@ -1106,7 +1117,7 @@ export default function App() {
         provider: companyForm.provider || 'mock'
       });
       showToast('🏢 Company added successfully!', 'success');
-      
+
       const newCo = response.data?.data;
       if (newCo) {
         setCompanies(prev => [newCo, ...prev]);
@@ -1118,8 +1129,8 @@ export default function App() {
       setCompanySearchQuery('');
       setIsCompanyAdderOpen(false);
 
-      api.get('/analytics').then(r => setAnalytics(r.data?.data || null)).catch(() => {});
-      api.get('/logs?limit=50').then(r => setLogs(r.data?.data || [])).catch(() => {});
+      api.get('/analytics').then(r => setAnalytics(r.data?.data || null)).catch(() => { });
+      api.get('/logs?limit=50').then(r => setLogs(r.data?.data || [])).catch(() => { });
     } catch (err) {
       showToast('❌ Failed to add company: ' + (err.response?.data?.message || err.message), 'error');
     } finally {
@@ -1127,17 +1138,50 @@ export default function App() {
     }
   };
 
+  const handleSendAiMessage = (customText) => {
+    const textToSend = (customText || aiInput).trim();
+    if (!textToSend) return;
+
+    setAiMessages(prev => [...prev, { sender: 'user', text: textToSend }]);
+    setAiInput('');
+    setIsAiTyping(true);
+
+    setTimeout(() => {
+      let reply = "";
+      const query = textToSend.toLowerCase();
+
+      if (query.includes('encrypt') || query.includes('secure') || query.includes('safety') || query.includes('aes') || query.includes('db')) {
+        reply = "🔒 **Security & Symmetric Database Encryption:**\nWe protect your credentials at rest! The platform implements database-level symmetric envelope encryption using the **AES-256-GCM** cipher format. Every access and refresh token saved to the PostgreSQL database is encrypted on write and decrypted on read transparently using a secure process context variable. This prevents data leaks even if the database is exposed.";
+      } else if (query.includes('integration') || query.includes('hubspot') || query.includes('salesforce') || query.includes('pipedrive')) {
+        reply = "🔌 **Connector Integrations:**\nOur platform normalizes APIs from leading CRM providers: HubSpot, Salesforce, and Pipedrive. You can securely authenticate your CRM workspace in the **Integration Marketplace** tab. Once connected, our background workers automatically synchronize and clean your contacts, companies, and deals into a single, unified database schema.";
+      } else if (query.includes('playground') || query.includes('postman') || query.includes('test api')) {
+        reply = "🧪 **API Playground:**\nThe API Playground is a built-in Postman client interface. It allows you to build REST requests (`GET`, `POST`, `PATCH`, `DELETE`) directly against our gateway. Your active JWT login token is **automatically injected** under the Auth tab (`Authorization: Bearer`), and your query history is saved on the left panel for one-click test replication.";
+      } else if (query.includes('log') || query.includes('explorer') || query.includes('file tree') || query.includes('telemetry')) {
+        reply = "📁 **VS Code-style Request Logs:**\nOur API logs are modeled after a dynamic IDE codebase! The left sidebar displays a tree file list divided into directory folders (`companies/`, `contacts/`, etc.). Filenames indicate the method and endpoint path. Clicking a file loads the full JSON payload with complete color syntax-highlighting, line numbers, and gateway telemetry details in the editor pane.";
+      } else if (query.includes('matrix') || query.includes('sandbox') || query.includes('simulation')) {
+        reply = "⚡ **Feature Matrix Sandbox:**\nUnder the **Feature Matrix** tab, we offer 4 live, interactive simulators to test platform capability:\n1. **BUILD:** Dynamic custom unified schema builder with route scaffolding.\n2. **INTEGRATE:** Real-time token encryption simulator.\n3. **TEST:** Sandbox API client to run mock gateway requests.\n4. **AUTOMATE:** OAuth token refresh loop animation (401 interceptor -> token rotation -> retry success).";
+      } else if (query.includes('benefit') || query.includes('facility') || query.includes('feature') || query.includes('why use')) {
+        reply = "🚀 **Universal API Platform Benefits & Facilities:**\n1. **Unified Schema:** Query contacts, companies, and deals from Salesforce, HubSpot, and Pipedrive through a single request format.\n2. **Symmetric Encryption:** Total data safety at rest (AES-256-GCM).\n3. **Automated Token Rotation:** Proactive background refresh checks ensure syncs never break.\n4. **Role-Scoped Access Control:** Enforces strict department-level data boundaries.\n5. **Developer Experience:** Dynamic log traces, mock test sandboxes, and full API Playground tools built-in.";
+      } else {
+        reply = "🤖 **How can I guide you?**\nI'm ready to introduce you to the platform facilities! You can ask me about:\n* 🔒 **Symmetric database encryption**\n* 🔌 **HubSpot / Salesforce integrations**\n* 🧪 **How the API Playground works**\n* 📁 **Redesigned request logs explorer**\n* ⚡ **Feature Matrix interactive sandboxes**\n* 🚀 **Core platform benefits**";
+      }
+
+      setAiMessages(prev => [...prev, { sender: 'assistant', text: reply }]);
+      setIsAiTyping(false);
+    }, 900);
+  };
+
   // Feature Matrix: Run Encryption simulation
   const handleFmEncrypt = () => {
     setFmEncLoading(true);
     setFmCiphertext('');
     setFmDecrypted('');
-    
+
     setTimeout(() => {
-      const iv = Array.from({length: 12}, () => Math.floor(Math.random()*16).toString(16)).join('');
-      const tag = Array.from({length: 16}, () => Math.floor(Math.random()*16).toString(16)).join('');
+      const iv = Array.from({ length: 12 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      const tag = Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
       const encrypted = btoa(fmEncryptValue).substring(0, 24);
-      
+
       setFmCiphertext(`aes-256-gcm:$iv=${iv}:$tag=${tag}:$ciphertext=${encrypted}`);
       setFmDecrypted(fmEncryptValue);
       setFmEncLoading(false);
@@ -3253,7 +3297,7 @@ export default function App() {
                               fontSize: '0.8rem', cursor: 'pointer', transition: 'opacity 0.15s'
                             }}
                           >
-                            {isAddingCompany ? 'Adding...' : '💾 Save Company'}
+                            {isAddingCompany ? 'Adding...' : 'Save Company'}
                           </button>
                         </div>
                       </form>
@@ -3486,7 +3530,7 @@ export default function App() {
                       <p style={{ margin: 0, color: '#8b949e', fontSize: '0.78rem', lineHeight: '1.5' }}>
                         Design a custom endpoint schema on the fly. The platform will automatically map the fields and register the dynamic OpenAPI endpoints.
                       </p>
-                      
+
                       <div>
                         <label style={{ display: 'block', color: '#8b949e', fontSize: '0.72rem', fontWeight: '700', marginBottom: '6px', textTransform: 'uppercase' }}>Endpoint Name</label>
                         <div style={{ display: 'flex', background: 'rgba(7,9,14,0.6)', border: '1px solid rgba(48,54,61,0.8)', borderRadius: '6px', alignItems: 'center', paddingLeft: '10px' }}>
@@ -4206,9 +4250,9 @@ run();`}</pre>
             // ==========================================
             (() => {
               const filteredLogs = logs.filter(log => {
-                const matchesSearch = log.endpoint.toLowerCase().includes(logSearch.toLowerCase()) || 
-                                     (log.errorMessage && log.errorMessage.toLowerCase().includes(logSearch.toLowerCase())) ||
-                                     (log.ipAddress && log.ipAddress.includes(logSearch));
+                const matchesSearch = log.endpoint.toLowerCase().includes(logSearch.toLowerCase()) ||
+                  (log.errorMessage && log.errorMessage.toLowerCase().includes(logSearch.toLowerCase())) ||
+                  (log.ipAddress && log.ipAddress.includes(logSearch));
                 const matchesMethod = logMethod === 'ALL' || log.method === logMethod;
                 return matchesSearch && matchesMethod;
               });
@@ -4243,7 +4287,7 @@ run();`}</pre>
                   const indent = keyMatch[1];
                   const keyName = keyMatch[2];
                   const rest = line.substring(keyMatch[0].length);
-                  
+
                   let valueElement;
                   const cleanRest = rest.trim();
                   if (cleanRest.startsWith('"')) {
@@ -4257,7 +4301,7 @@ run();`}</pre>
                   } else {
                     valueElement = <span style={{ color: '#c9d1d9' }}>{rest}</span>;
                   }
-                  
+
                   return (
                     <span>
                       {indent}
@@ -4353,7 +4397,7 @@ run();`}</pre>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <input type="text" placeholder="Filter workspace files..." value={logSearch} onChange={e => setLogSearch(e.target.value)}
                         style={{ padding: '6px 10px', background: 'rgba(7,9,14,0.6)', border: '1px solid rgba(48,54,61,0.8)', borderRadius: '6px', color: '#e6edf3', fontSize: '0.78rem', width: '220px', outline: 'none' }} />
-                      
+
                       <select value={logMethod} onChange={e => setLogMethod(e.target.value)}
                         style={{ padding: '6px 10px', background: 'rgba(7,9,14,0.6)', border: '1px solid rgba(48,54,61,0.8)', borderRadius: '6px', color: '#e6edf3', fontSize: '0.78rem', fontWeight: '600', outline: 'none' }}>
                         {['ALL', 'GET', 'POST', 'PATCH', 'DELETE'].map(m => <option key={m} value={m} style={{ background: '#0f141c' }}>{m} Files</option>)}
@@ -4934,10 +4978,10 @@ run();`}</pre>
           </div>
         )}
 
-        {/* Global Toast */}
+        {/* Global Toast (Relocated to bottom-left to make space for AI Widget) */}
         {toast && (
           <div style={{
-            position: 'fixed', bottom: '24px', right: '24px',
+            position: 'fixed', bottom: '24px', left: '24px',
             background: toast.type === 'success' ? '#1f6feb' : toast.type === 'info' ? '#8b5cf6' : '#f85149',
             color: 'white', padding: '12px 20px', borderRadius: '8px',
             boxShadow: '0 8px 32px rgba(0,0,0,0.4)', fontSize: '0.84rem',
@@ -4947,6 +4991,125 @@ run();`}</pre>
             {toast.message}
           </div>
         )}
+
+        {/* Floating AI Assistant Onboarding Widget */}
+        <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
+          <style>{`
+            @keyframes pulse-glow {
+              0% { box-shadow: 0 0 0 0 rgba(31,111,235,0.6); }
+              70% { box-shadow: 0 0 0 10px rgba(31,111,235,0); }
+              100% { box-shadow: 0 0 0 0 rgba(31,111,235,0); }
+            }
+          `}</style>
+          
+          {/* Chat Window */}
+          {isAiAssistantOpen && (
+            <div style={{
+              width: '350px', height: '480px', background: '#161b22',
+              border: '1px solid rgba(48,54,61,0.9)', borderRadius: '14px',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column',
+              overflow: 'hidden', backdropFilter: 'blur(10px)'
+            }}>
+              {/* Header */}
+              <div style={{
+                background: 'linear-gradient(135deg, #1f6feb, #8b5cf6)',
+                padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2ed573', boxShadow: '0 0 6px #2ed573' }} />
+                  <span style={{ color: 'white', fontWeight: '800', fontSize: '0.85rem' }}>Universal API Assistant</span>
+                </div>
+                <button onClick={() => setIsAiAssistantOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold' }}>✕</button>
+              </div>
+
+              {/* Chat bubbles container */}
+              <div style={{ flex: 1, padding: '16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', background: '#0d1117' }}>
+                {aiMessages.map((msg, idx) => (
+                  <div key={idx} style={{
+                    alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                    maxWidth: '85%', padding: '10px 14px', borderRadius: '12px',
+                    background: msg.sender === 'user' ? '#1f6feb' : 'rgba(33,38,45,0.8)',
+                    color: '#e6edf3', fontSize: '0.78rem', lineHeight: '1.4',
+                    whiteSpace: 'pre-wrap', border: msg.sender === 'user' ? 'none' : '1px solid rgba(48,54,61,0.5)'
+                  }}>
+                    {msg.text}
+                  </div>
+                ))}
+                {isAiTyping && (
+                  <div style={{ alignSelf: 'flex-start', background: 'rgba(33,38,45,0.8)', padding: '10px 14px', borderRadius: '12px', display: 'flex', gap: '4px', border: '1px solid rgba(48,54,61,0.5)' }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#8b949e', animation: 'pulse 1s infinite alternate' }} />
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#8b949e', animation: 'pulse 1s infinite alternate 0.2s' }} />
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#8b949e', animation: 'pulse 1s infinite alternate 0.4s' }} />
+                  </div>
+                )}
+              </div>
+
+              {/* Preselected Suggestions */}
+              <div style={{
+                display: 'flex', gap: '6px', padding: '10px 12px', overflowX: 'auto',
+                borderTop: '1px solid rgba(48,54,61,0.4)', background: '#161b22', whiteSpace: 'nowrap'
+              }}>
+                {[
+                  "🚀 Platform benefits?",
+                  "🔒 Security/Encryption?",
+                  "🔌 HubSpot/CRM sync?",
+                  "🧪 API Playground?",
+                  "📁 VS Code logs?"
+                ].map((s, idx) => (
+                  <button key={idx} onClick={() => handleSendAiMessage(s.replace(/[^a-zA-Z\s]/g, '').trim())}
+                    style={{
+                      background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(48,54,61,0.8)',
+                      borderRadius: '16px', color: '#c9d1d9', padding: '6px 12px',
+                      fontSize: '0.72rem', fontWeight: '600', cursor: 'pointer', flexShrink: 0
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+
+              {/* Input bar */}
+              <form onSubmit={(e) => { e.preventDefault(); handleSendAiMessage(); }}
+                style={{ display: 'flex', padding: '10px', background: '#0d1117', borderTop: '1px solid rgba(48,54,61,0.4)' }}>
+                <input
+                  type="text"
+                  placeholder="Ask assistant about CRM APIs..."
+                  value={aiInput}
+                  onChange={e => setAiInput(e.target.value)}
+                  style={{
+                    flex: 1, padding: '8px 12px', background: 'rgba(7,9,14,0.6)',
+                    border: '1px solid rgba(48,54,61,0.8)', borderRadius: '6px',
+                    color: '#e6edf3', fontSize: '0.78rem', outline: 'none'
+                  }}
+                />
+                <button type="submit" style={{
+                  marginLeft: '8px', padding: '8px 12px',
+                  background: 'linear-gradient(135deg, #1f6feb, #8b5cf6)',
+                  color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer',
+                  fontWeight: '700', fontSize: '0.78rem'
+                }}>Send</button>
+              </form>
+            </div>
+          )}
+
+          {/* Circle Toggle Button */}
+          <button onClick={() => setIsAiAssistantOpen(!isAiAssistantOpen)} style={{
+            width: '50px', height: '50px', borderRadius: '50%',
+            background: 'linear-gradient(135deg, #1f6feb, #8b5cf6)',
+            border: 'none', color: 'white', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 8px 24px rgba(31,111,235,0.4)',
+            transition: 'transform 0.2s',
+            animation: 'pulse-glow 2.5s infinite'
+          }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            {isAiAssistantOpen ? <X size={20} /> : <HelpCircle size={20} />}
+          </button>
+        </div>
 
         {/* Footer */}
         <footer style={{ marginTop: '56px', textAlign: 'center', borderTop: '1px solid rgba(48,54,61,0.4)', paddingTop: '28px' }}>
