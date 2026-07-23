@@ -30,6 +30,39 @@ api.interceptors.response.use(res => res, err => {
   return Promise.reject(err);
 });
 
+const WORLDWIDE_COMPANIES = [
+  { name: 'Google', website: 'https://google.com', industry: 'Technology', size: '150,000+' },
+  { name: 'Microsoft', website: 'https://microsoft.com', industry: 'Technology', size: '220,000+' },
+  { name: 'Apple', website: 'https://apple.com', industry: 'Technology', size: '160,000+' },
+  { name: 'Amazon', website: 'https://amazon.com', industry: 'E-commerce', size: '1,500,000+' },
+  { name: 'Meta', website: 'https://meta.com', industry: 'Social Media', size: '70,000+' },
+  { name: 'Tesla', website: 'https://tesla.com', industry: 'Automotive', size: '120,000+' },
+  { name: 'Netflix', website: 'https://netflix.com', industry: 'Entertainment', size: '12,000+' },
+  { name: 'Nvidia', website: 'https://nvidia.com', industry: 'Technology', size: '26,000+' },
+  { name: 'Adobe', website: 'https://adobe.com', industry: 'Software', size: '29,000+' },
+  { name: 'Salesforce', website: 'https://salesforce.com', industry: 'Software', size: '79,000+' },
+  { name: 'Oracle', website: 'https://oracle.com', industry: 'Software', size: '143,000+' },
+  { name: 'IBM', website: 'https://ibm.com', industry: 'Technology', size: '280,000+' },
+  { name: 'Uber', website: 'https://uber.com', industry: 'Transportation', size: '29,000+' },
+  { name: 'Shopify', website: 'https://shopify.com', industry: 'E-commerce', size: '10,000+' },
+  { name: 'Airbnb', website: 'https://airbnb.com', industry: 'Hospitality', size: '6,000+' },
+  { name: 'Spotify', website: 'https://spotify.com', industry: 'Entertainment', size: '9,000+' },
+  { name: 'Zoom', website: 'https://zoom.us', industry: 'Communication', size: '6,000+' },
+  { name: 'Stripe', website: 'https://stripe.com', industry: 'Fintech', size: '8,000+' },
+  { name: 'Slack', website: 'https://slack.com', industry: 'Software', size: '2,500' },
+  { name: 'SpaceX', website: 'https://spacex.com', industry: 'Aerospace', size: '12,000+' },
+  { name: 'Samsung', website: 'https://samsung.com', industry: 'Electronics', size: '287,000+' },
+  { name: 'Sony', website: 'https://sony.com', industry: 'Electronics', size: '110,000+' },
+  { name: 'Toyota', website: 'https://toyota.com', industry: 'Automotive', size: '370,000+' },
+  { name: 'Coca-Cola', website: 'https://coca-cola.com', industry: 'Beverages', size: '86,000+' },
+  { name: 'PepsiCo', website: 'https://pepsico.com', industry: 'Food & Beverage', size: '309,000+' },
+  { name: 'Nike', website: 'https://nike.com', industry: 'Apparel', size: '79,000+' },
+  { name: 'Adidas', website: 'https://adidas.com', industry: 'Apparel', size: '59,000+' },
+  { name: 'McDonald\'s', website: 'https://mcdonalds.com', industry: 'Food Service', size: '200,000+' },
+  { name: 'Starbucks', website: 'https://starbucks.com', industry: 'Food Service', size: '380,000+' },
+  { name: 'Disney', website: 'https://disney.com', industry: 'Entertainment', size: '220,000+' },
+];
+
 const PROVIDER_COLORS = {
   hubspot: { bg: 'rgba(255,122,0,0.18)', text: '#ff8c42', border: 'rgba(255,122,0,0.35)' },
   salesforce: { bg: 'rgba(0,161,224,0.18)', text: '#29b6e8', border: 'rgba(0,161,224,0.35)' },
@@ -751,6 +784,18 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState({});
   const [toast, setToast] = useState(null);
 
+  // Worldwide Company Adder States
+  const [isCompanyAdderOpen, setIsCompanyAdderOpen] = useState(false);
+  const [companySearchQuery, setCompanySearchQuery] = useState('');
+  const [companyForm, setCompanyForm] = useState({
+    name: '',
+    website: '',
+    industry: '',
+    size: '',
+    provider: 'mock'
+  });
+  const [isAddingCompany, setIsAddingCompany] = useState(false);
+
   // API Log Filter States
   const [logSearch, setLogSearch] = useState('');
   const [logMethod, setLogMethod] = useState('ALL');
@@ -914,6 +959,43 @@ export default function App() {
       api.get('/logs?limit=50').then(r => setLogs(r.data?.data || [])).catch(() => {});
     } catch (err) {
       showToast('❌ Failed to delete contact: ' + (err.response?.data?.message || err.message), 'error');
+    }
+  };
+
+  const handleAddCompany = async (e) => {
+    e.preventDefault();
+    if (!companyForm.name.trim()) {
+      showToast('❌ Company name is required', 'error');
+      return;
+    }
+    setIsAddingCompany(true);
+    try {
+      const response = await api.post('/companies', {
+        name: companyForm.name,
+        website: companyForm.website || undefined,
+        industry: companyForm.industry || undefined,
+        size: companyForm.size || undefined,
+        provider: companyForm.provider || 'mock'
+      });
+      showToast('🏢 Company added successfully!', 'success');
+      
+      const newCo = response.data?.data;
+      if (newCo) {
+        setCompanies(prev => [newCo, ...prev]);
+      } else {
+        fetchData();
+      }
+
+      setCompanyForm({ name: '', website: '', industry: '', size: '', provider: 'mock' });
+      setCompanySearchQuery('');
+      setIsCompanyAdderOpen(false);
+
+      api.get('/analytics').then(r => setAnalytics(r.data?.data || null)).catch(() => {});
+      api.get('/logs?limit=50').then(r => setLogs(r.data?.data || [])).catch(() => {});
+    } catch (err) {
+      showToast('❌ Failed to add company: ' + (err.response?.data?.message || err.message), 'error');
+    } finally {
+      setIsAddingCompany(false);
     }
   };
 
@@ -2543,16 +2625,33 @@ export default function App() {
               </div>
             </div>
 
-            <button id="refresh-btn" onClick={fetchData} disabled={loading} style={{
-              padding: '8px 14px', borderRadius: '8px',
-              border: '1px solid rgba(48,54,61,0.6)', background: 'rgba(33,38,45,0.5)',
-              color: '#c9d1d9', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-              fontSize: '0.82rem', fontWeight: '600', transition: 'all 0.15s',
-              alignSelf: 'center'
-            }}>
-              <RefreshCw size={13} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
-              Sync Workspace
-            </button>
+            <div style={{ display: 'flex', gap: '10px', alignSelf: 'center' }}>
+              {activeTab === 'companies' && (
+                <button onClick={() => {
+                  setIsCompanyAdderOpen(!isCompanyAdderOpen);
+                  setCompanySearchQuery('');
+                  setCompanyForm({ name: '', website: '', industry: '', size: '', provider: 'mock' });
+                }} style={{
+                  padding: '8px 14px', borderRadius: '8px',
+                  border: '1px solid rgba(88,166,255,0.3)', background: 'rgba(31,111,235,0.1)',
+                  color: '#58a6ff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                  fontSize: '0.82rem', fontWeight: '600', transition: 'all 0.15s'
+                }}>
+                  {isCompanyAdderOpen ? <X size={13} /> : <Building2 size={13} />}
+                  {isCompanyAdderOpen ? 'Close Adder' : '＋ Add Company'}
+                </button>
+              )}
+
+              <button id="refresh-btn" onClick={fetchData} disabled={loading} style={{
+                padding: '8px 14px', borderRadius: '8px',
+                border: '1px solid rgba(48,54,61,0.6)', background: 'rgba(33,38,45,0.5)',
+                color: '#c9d1d9', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                fontSize: '0.82rem', fontWeight: '600', transition: 'all 0.15s'
+              }}>
+                <RefreshCw size={13} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
+                Sync Workspace
+              </button>
+            </div>
           </div>
         </div>
 
@@ -2868,6 +2967,171 @@ export default function App() {
                       <span><strong>Role-Scoped Data:</strong> As a <strong>{currentUser?.role}</strong>, you only have access to company accounts under your role boundaries.</span>
                     </div>
                   )}
+
+                  {isCompanyAdderOpen && (
+                    <div style={{
+                      background: 'rgba(33,38,45,0.4)', border: '1px solid rgba(48,54,61,0.8)',
+                      borderRadius: '12px', padding: '20px', marginBottom: '24px',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+                    }}>
+                      <h4 style={{ margin: 0, color: '#e6edf3', fontSize: '0.92rem', fontWeight: '700', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Building2 size={15} color="#58a6ff" /> Add Company Registry
+                      </h4>
+
+                      {/* Autocomplete Dropdown Search */}
+                      <div style={{ position: 'relative', marginBottom: '20px' }}>
+                        <label style={{ display: 'block', color: '#8b949e', fontSize: '0.72rem', fontWeight: '700', marginBottom: '6px', textTransform: 'uppercase' }}>Search Global Companies</label>
+                        <input
+                          type="text"
+                          placeholder="Search worldwide databases (e.g. Apple, Netflix, Spotify)..."
+                          value={companySearchQuery}
+                          onChange={e => setCompanySearchQuery(e.target.value)}
+                          style={{
+                            width: '100%', padding: '10px 14px', background: 'rgba(7,9,14,0.6)',
+                            border: '1px solid rgba(48,54,61,0.8)', borderRadius: '8px',
+                            color: '#e6edf3', fontSize: '0.82rem', outline: 'none'
+                          }}
+                        />
+                        {companySearchQuery.trim() && (
+                          (() => {
+                            const matches = WORLDWIDE_COMPANIES.filter(co =>
+                              co.name.toLowerCase().includes(companySearchQuery.toLowerCase())
+                            );
+                            if (matches.length === 0) return null;
+                            return (
+                              <div style={{
+                                position: 'absolute', top: '100%', left: 0, right: 0,
+                                background: '#161b22', border: '1px solid rgba(48,54,61,0.9)',
+                                borderRadius: '8px', zIndex: 10, marginTop: '4px',
+                                maxHeight: '180px', overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
+                              }}>
+                                {matches.map((co, idx) => (
+                                  <div
+                                    key={idx}
+                                    onClick={() => {
+                                      setCompanyForm({
+                                        name: co.name,
+                                        website: co.website,
+                                        industry: co.industry,
+                                        size: co.size,
+                                        provider: 'mock'
+                                      });
+                                      setCompanySearchQuery('');
+                                    }}
+                                    style={{
+                                      padding: '10px 14px', color: '#c9d1d9', fontSize: '0.8rem',
+                                      cursor: 'pointer', borderBottom: idx < matches.length - 1 ? '1px solid rgba(48,54,61,0.3)' : 'none',
+                                      display: 'flex', justifyContent: 'space-between', transition: 'background 0.15s'
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                  >
+                                    <span style={{ fontWeight: '600' }}>{co.name}</span>
+                                    <span style={{ color: '#8b949e', fontSize: '0.74rem' }}>{co.industry} • {co.size}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })()
+                        )}
+                      </div>
+
+                      {/* Add Form fields */}
+                      <form onSubmit={handleAddCompany} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                        <div>
+                          <label style={{ display: 'block', color: '#8b949e', fontSize: '0.7rem', fontWeight: '700', marginBottom: '6px', textTransform: 'uppercase' }}>Company Name *</label>
+                          <input
+                            type="text" required
+                            value={companyForm.name}
+                            onChange={e => setCompanyForm({ ...companyForm, name: e.target.value })}
+                            placeholder="Enter company name"
+                            style={{
+                              width: '100%', padding: '8px 12px', background: 'rgba(7,9,14,0.4)',
+                              border: '1px solid rgba(48,54,61,0.6)', borderRadius: '6px',
+                              color: '#c9d1d9', fontSize: '0.8rem', outline: 'none'
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', color: '#8b949e', fontSize: '0.7rem', fontWeight: '700', marginBottom: '6px', textTransform: 'uppercase' }}>Website URL</label>
+                          <input
+                            type="text"
+                            value={companyForm.website}
+                            onChange={e => setCompanyForm({ ...companyForm, website: e.target.value })}
+                            placeholder="https://example.com"
+                            style={{
+                              width: '100%', padding: '8px 12px', background: 'rgba(7,9,14,0.4)',
+                              border: '1px solid rgba(48,54,61,0.6)', borderRadius: '6px',
+                              color: '#c9d1d9', fontSize: '0.8rem', outline: 'none'
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', color: '#8b949e', fontSize: '0.7rem', fontWeight: '700', marginBottom: '6px', textTransform: 'uppercase' }}>Industry</label>
+                          <input
+                            type="text"
+                            value={companyForm.industry}
+                            onChange={e => setCompanyForm({ ...companyForm, industry: e.target.value })}
+                            placeholder="e.g. Technology"
+                            style={{
+                              width: '100%', padding: '8px 12px', background: 'rgba(7,9,14,0.4)',
+                              border: '1px solid rgba(48,54,61,0.6)', borderRadius: '6px',
+                              color: '#c9d1d9', fontSize: '0.8rem', outline: 'none'
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', color: '#8b949e', fontSize: '0.7rem', fontWeight: '700', marginBottom: '6px', textTransform: 'uppercase' }}>Employees Size</label>
+                          <input
+                            type="text"
+                            value={companyForm.size}
+                            onChange={e => setCompanyForm({ ...companyForm, size: e.target.value })}
+                            placeholder="e.g. 5,000+"
+                            style={{
+                              width: '100%', padding: '8px 12px', background: 'rgba(7,9,14,0.4)',
+                              border: '1px solid rgba(48,54,61,0.6)', borderRadius: '6px',
+                              color: '#c9d1d9', fontSize: '0.8rem', outline: 'none'
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', color: '#8b949e', fontSize: '0.7rem', fontWeight: '700', marginBottom: '6px', textTransform: 'uppercase' }}>Provider Adapter</label>
+                          <select
+                            value={companyForm.provider}
+                            onChange={e => setCompanyForm({ ...companyForm, provider: e.target.value })}
+                            style={{
+                              width: '100%', padding: '8px 12px', background: 'rgba(7,9,14,0.4)',
+                              border: '1px solid rgba(48,54,61,0.6)', borderRadius: '6px',
+                              color: '#c9d1d9', fontSize: '0.8rem', outline: 'none'
+                            }}
+                          >
+                            <option value="mock" style={{ background: '#0f141c' }}>Mock Workspace (Default)</option>
+                            <option value="hubspot" style={{ background: '#0f141c' }}>HubSpot</option>
+                            <option value="salesforce" style={{ background: '#0f141c' }}>Salesforce</option>
+                            <option value="pipedrive" style={{ background: '#0f141c' }}>Pipedrive</option>
+                          </select>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                          <button
+                            type="submit" disabled={isAddingCompany}
+                            style={{
+                              width: '100%', padding: '9px', background: 'linear-gradient(135deg, #1f6feb, #8b5cf6)',
+                              color: 'white', border: 'none', borderRadius: '6px', fontWeight: '700',
+                              fontSize: '0.8rem', cursor: 'pointer', transition: 'opacity 0.15s'
+                            }}
+                          >
+                            {isAddingCompany ? 'Adding...' : '💾 Save Company'}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
+
                   {filtered.length > 0 ? (
                     <div style={{ overflowX: 'auto' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -3810,7 +4074,7 @@ run();`}</pre>
 
           ) : activeTab === 'logs' ? (
             // ==========================================
-            // REQUEST LOGS (Premium Redesign)
+            // REQUEST LOGS (IDE-style Dynamic Codebase Redesign)
             // ==========================================
             (() => {
               const filteredLogs = logs.filter(log => {
@@ -3821,130 +4085,263 @@ run();`}</pre>
                 return matchesSearch && matchesMethod;
               });
 
-              const errorCount = logs.filter(l => l.statusCode >= 400).length;
+              // Set default active log if none is selected
+              const activeLog = logs.find(l => l.id === expandedLogId) || filteredLogs[0];
+
+              // Group logs into folder paths
+              const folders = {
+                companies: [],
+                contacts: [],
+                auth: [],
+                integrations: [],
+                system: []
+              };
+
+              filteredLogs.forEach(log => {
+                if (log.endpoint.includes('/companies')) folders.companies.push(log);
+                else if (log.endpoint.includes('/contacts')) folders.contacts.push(log);
+                else if (log.endpoint.includes('/auth') || log.endpoint.includes('/login') || log.endpoint.includes('/register')) folders.auth.push(log);
+                else if (log.endpoint.includes('/integrations') || log.endpoint.includes('/sync')) folders.integrations.push(log);
+                else folders.system.push(log);
+              });
+
+              // Helper for JSON syntax tokenizer
+              const tokenizeJsonLine = (line) => {
+                if (line.trim().startsWith('//')) {
+                  return <span style={{ color: '#8b949e', fontStyle: 'italic' }}>{line}</span>;
+                }
+                const keyMatch = line.match(/^(\s*)"([^"]+)"\s*:/);
+                if (keyMatch) {
+                  const indent = keyMatch[1];
+                  const keyName = keyMatch[2];
+                  const rest = line.substring(keyMatch[0].length);
+                  
+                  let valueElement;
+                  const cleanRest = rest.trim();
+                  if (cleanRest.startsWith('"')) {
+                    valueElement = <span style={{ color: '#ce9178' }}>{cleanRest}</span>;
+                  } else if (cleanRest.startsWith('true') || cleanRest.startsWith('false')) {
+                    valueElement = <span style={{ color: '#569cd6', fontWeight: '700' }}>{cleanRest}</span>;
+                  } else if (cleanRest.startsWith('null')) {
+                    valueElement = <span style={{ color: '#569cd6', fontStyle: 'italic' }}>{cleanRest}</span>;
+                  } else if (/^-?\d+/.test(cleanRest)) {
+                    valueElement = <span style={{ color: '#b5cea8' }}>{cleanRest}</span>;
+                  } else {
+                    valueElement = <span style={{ color: '#c9d1d9' }}>{rest}</span>;
+                  }
+                  
+                  return (
+                    <span>
+                      {indent}
+                      <span style={{ color: '#9cdcfe' }}>"{keyName}"</span>
+                      <span style={{ color: '#c9d1d9' }}>:</span>
+                      {valueElement}
+                    </span>
+                  );
+                }
+                if (line.includes('{') || line.includes('}') || line.includes('[') || line.includes(']')) {
+                  return <span style={{ color: '#ffd700' }}>{line}</span>;
+                }
+                return <span>{line}</span>;
+              };
+
+              const renderEditorContent = (log) => {
+                if (!log) {
+                  return (
+                    <div style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      height: '100%', color: '#8b949e', fontSize: '0.8rem', fontStyle: 'italic', gap: '8px'
+                    }}>
+                      <Code size={24} color="#484f58" />
+                      <span>// Select a log file in the sidebar folder tree to explore...</span>
+                    </div>
+                  );
+                }
+
+                const doc = {
+                  id: log.id,
+                  timestamp: log.timestamp,
+                  request: {
+                    method: log.method,
+                    endpoint: log.endpoint,
+                    clientIp: log.ipAddress || '127.0.0.1',
+                    userAgent: log.userAgent || 'Mozilla/5.0'
+                  },
+                  response: {
+                    statusCode: log.statusCode,
+                    latencyMs: log.responseTime,
+                    success: log.statusCode < 400
+                  },
+                  ...(log.errorMessage ? { error: { message: log.errorMessage } } : {})
+                };
+
+                const commentHeader = [
+                  `// ==================================================`,
+                  `// UNIVERSAL CRM GATEWAY TELEMETRY TRACE`,
+                  `// REQUEST: ${log.method} ${log.endpoint}`,
+                  `// GATEWAY STATUS: ${log.statusCode} (${log.statusCode >= 400 ? 'FAILED' : 'OK'})`,
+                  `// RESOLUTION TIMING: ${log.responseTime}ms`,
+                  `// ==================================================`,
+                  ``
+                ];
+
+                const jsonLines = JSON.stringify(doc, null, 2).split('\n');
+                const allLines = [...commentHeader, ...jsonLines];
+
+                return (
+                  <div style={{
+                    display: 'flex', flexDirection: 'column', flex: 1,
+                    overflowY: 'auto', maxHeight: '520px', background: '#0d1117'
+                  }}>
+                    {allLines.map((line, idx) => (
+                      <div key={idx} style={{ display: 'flex', fontSize: '0.8rem', fontFamily: 'monospace', lineHeight: '1.6' }}>
+                        <span style={{
+                          color: '#8b949e', width: '42px', minWidth: '42px', textAlign: 'right',
+                          paddingRight: '12px', borderRight: '1px solid rgba(48,54,61,0.25)',
+                          userSelect: 'none', marginRight: '12px'
+                        }}>{idx + 1}</span>
+                        <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{tokenizeJsonLine(line)}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              };
+
+              const getLogFilename = (l) => {
+                const parts = l.endpoint.split('/');
+                const base = parts[parts.length - 1] || 'root';
+                return `${l.method}_${base}_${l.id.slice(0, 4)}.json`;
+              };
 
               return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {/* Filter & Metric Bar */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {/* Top Filters */}
                   <div style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    flexWrap: 'wrap', gap: '16px', padding: '16px',
+                    flexWrap: 'wrap', gap: '12px', padding: '12px 16px',
                     background: 'rgba(22,27,34,0.3)', border: '1px solid rgba(48,54,61,0.3)',
-                    borderRadius: '10px'
+                    borderRadius: '8px'
                   }}>
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                      <input type="text" placeholder="Filter by endpoint, error, IP..." value={logSearch} onChange={e => setLogSearch(e.target.value)}
-                        style={{ padding: '8px 12px', background: 'rgba(7,9,14,0.6)', border: '1px solid rgba(48,54,61,0.8)', borderRadius: '8px', color: '#e6edf3', fontSize: '0.82rem', width: '250px', outline: 'none' }} />
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input type="text" placeholder="Filter workspace files..." value={logSearch} onChange={e => setLogSearch(e.target.value)}
+                        style={{ padding: '6px 10px', background: 'rgba(7,9,14,0.6)', border: '1px solid rgba(48,54,61,0.8)', borderRadius: '6px', color: '#e6edf3', fontSize: '0.78rem', width: '220px', outline: 'none' }} />
                       
                       <select value={logMethod} onChange={e => setLogMethod(e.target.value)}
-                        style={{ padding: '8px 12px', background: 'rgba(7,9,14,0.6)', border: '1px solid rgba(48,54,61,0.8)', borderRadius: '8px', color: '#e6edf3', fontSize: '0.82rem', fontWeight: '600', outline: 'none' }}>
-                        {['ALL', 'GET', 'POST', 'PATCH', 'DELETE'].map(m => <option key={m} value={m} style={{ background: '#0f141c' }}>{m} Methods</option>)}
+                        style={{ padding: '6px 10px', background: 'rgba(7,9,14,0.6)', border: '1px solid rgba(48,54,61,0.8)', borderRadius: '6px', color: '#e6edf3', fontSize: '0.78rem', fontWeight: '600', outline: 'none' }}>
+                        {['ALL', 'GET', 'POST', 'PATCH', 'DELETE'].map(m => <option key={m} value={m} style={{ background: '#0f141c' }}>{m} Files</option>)}
                       </select>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '16px', fontSize: '0.78rem', color: '#8b949e' }}>
-                      <span>Total Requests: <strong style={{ color: '#e6edf3' }}>{logs.length}</strong></span>
-                      <span>Errors: <strong style={{ color: errorCount > 0 ? '#f85149' : '#3fb950' }}>{errorCount}</strong></span>
-                    </div>
+                    <span style={{ color: '#8b949e', fontSize: '0.74rem' }}>
+                      Explorer contains <strong style={{ color: '#58a6ff' }}>{filteredLogs.length}</strong> dynamic files
+                    </span>
                   </div>
 
-                  {/* Logs Table */}
-                  {filteredLogs.length > 0 ? (
-                    <div style={{ overflowX: 'auto', border: '1px solid rgba(48,54,61,0.3)', borderRadius: '10px' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr style={{ background: 'rgba(13,17,23,0.6)' }}>
-                            {['Status', 'Method', 'Endpoint', 'Time', 'Client IP', ''].map((h, idx) => (
-                              <th key={idx} style={{ padding: '12px 20px', textAlign: 'left', color: '#8b949e', fontSize: '0.72rem', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', borderBottom: '1px solid rgba(48,54,61,0.4)' }}>{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredLogs.map((log) => {
-                            const isErr = log.statusCode >= 400;
-                            const isExpanded = expandedLogId === log.id;
-                            const methodColor = log.method === 'GET' ? '#58a6ff' : log.method === 'POST' ? '#3fb950' : log.method === 'DELETE' ? '#f85149' : '#d29922';
-                            return (
-                              <React.Fragment key={log.id}>
-                                <tr onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
-                                  style={{
-                                    borderBottom: '1px solid rgba(48,54,61,0.2)',
-                                    background: isExpanded ? 'rgba(31,111,235,0.04)' : 'transparent',
-                                    cursor: 'pointer', transition: 'background 0.15s'
-                                  }}
-                                  onMouseEnter={e => !isExpanded && (e.currentTarget.style.background = 'rgba(255,255,255,0.015)')}
-                                  onMouseLeave={e => !isExpanded && (e.currentTarget.style.background = 'transparent')}
-                                >
-                                  <td style={{ padding: '14px 20px' }}>
-                                    <span style={{
-                                      padding: '3px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '700',
-                                      background: isErr ? 'rgba(248,81,73,0.1)' : 'rgba(46,213,115,0.1)',
-                                      color: isErr ? '#f85149' : '#3fb950',
-                                      border: `1px solid ${isErr ? 'rgba(248,81,73,0.2)' : 'rgba(46,213,115,0.2)'}`
-                                    }}>{log.statusCode}</span>
-                                  </td>
-                                  <td style={{ padding: '14px 20px', fontWeight: '800', color: methodColor, fontSize: '0.8rem' }}>{log.method}</td>
-                                  <td style={{ padding: '14px 20px', color: '#c9d1d9', fontSize: '0.82rem', fontFamily: 'monospace' }}>{log.endpoint}</td>
-                                  <td style={{ padding: '14px 20px', color: '#8b949e', fontSize: '0.82rem' }}>{log.responseTime}ms</td>
-                                  <td style={{ padding: '14px 20px', color: '#8b949e', fontSize: '0.82rem' }}>{log.ipAddress || '127.0.0.1'}</td>
-                                  <td style={{ padding: '14px 20px', color: '#58a6ff', fontSize: '0.78rem', textAlign: 'right', fontWeight: '500' }}>
-                                    {isExpanded ? 'Hide Details ▲' : 'View Details ▼'}
-                                  </td>
-                                </tr>
-                                {isExpanded && (
-                                  <tr>
-                                    <td colSpan={6} style={{ padding: '16px 24px', background: 'rgba(13,17,23,0.35)', borderBottom: '1px solid rgba(48,54,61,0.3)' }}>
-                                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '12px' }}>
-                                        <div>
-                                          <span style={{ display: 'block', color: '#8b949e', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>Timestamp</span>
-                                          <span style={{ color: '#c9d1d9', fontSize: '0.8rem' }}>{new Date(log.timestamp).toLocaleString()}</span>
-                                        </div>
-                                        <div>
-                                          <span style={{ display: 'block', color: '#8b949e', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>Latency Breakdown</span>
-                                          <span style={{ color: '#c9d1d9', fontSize: '0.8rem' }}>Gateway: 2ms | DB Resolve: {log.responseTime - 2}ms (Total: {log.responseTime}ms)</span>
-                                        </div>
-                                        <div>
-                                          <span style={{ display: 'block', color: '#8b949e', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>User Agent</span>
-                                          <span style={{ color: '#8b949e', fontSize: '0.76rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>{log.userAgent || 'Mozilla/5.0 (Vercel Agent)'}</span>
-                                        </div>
-                                      </div>
-                                      
-                                      {log.errorMessage ? (
-                                        <div style={{ marginTop: '12px' }}>
-                                          <span style={{ display: 'block', color: '#f85149', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', marginBottom: '6px' }}>Error Details</span>
-                                          <pre style={{
-                                            margin: 0, padding: '10px 14px', background: 'rgba(248,81,73,0.05)',
-                                            border: '1px solid rgba(248,81,73,0.15)', borderRadius: '6px',
-                                            color: '#f85149', fontSize: '0.78rem', fontFamily: 'monospace', overflowX: 'auto'
-                                          }}>{log.errorMessage}</pre>
-                                        </div>
-                                      ) : (
-                                        <div style={{ marginTop: '12px' }}>
-                                          <span style={{ display: 'block', color: '#3fb950', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', marginBottom: '6px' }}>API Telemetry Response</span>
-                                          <pre style={{
-                                            margin: 0, padding: '10px 14px', background: 'rgba(56,139,253,0.03)',
-                                            border: '1px solid rgba(56,139,253,0.1)', borderRadius: '6px',
-                                            color: '#7ee787', fontSize: '0.78rem', fontFamily: 'monospace', overflowX: 'auto'
-                                          }}>{JSON.stringify({ success: true, status: log.statusCode, path: log.endpoint, method: log.method }, null, 2)}</pre>
-                                        </div>
-                                      )}
-                                    </td>
-                                  </tr>
-                                )}
-                              </React.Fragment>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                  {/* IDE Main Pane */}
+                  <div style={{
+                    display: 'flex', minHeight: '500px', background: '#0d1117',
+                    border: '1px solid rgba(48,54,61,0.6)', borderRadius: '12px', overflow: 'hidden',
+                    flexWrap: 'wrap'
+                  }}>
+                    {/* LEFT SIDEBAR: File Explorer */}
+                    <div style={{
+                      width: '240px', borderRight: '1px solid rgba(48,54,61,0.5)',
+                      background: '#161b22', display: 'flex', flexDirection: 'column',
+                      minWidth: '220px'
+                    }}>
+                      {/* Sidebar Header */}
+                      <div style={{
+                        padding: '10px 16px', borderBottom: '1px solid rgba(48,54,61,0.3)',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                      }}>
+                        <span style={{ color: '#8b949e', fontSize: '0.68rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>WORKSPACE LOGS Explorer</span>
+                      </div>
+
+                      {/* Directory Tree */}
+                      <div style={{ padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: '14px', overflowY: 'auto', maxHeight: '460px' }}>
+                        {/* Folder loops */}
+                        {Object.entries(folders).map(([folderName, items]) => {
+                          if (items.length === 0) return null;
+                          return (
+                            <div key={folderName} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <div style={{
+                                color: '#e6edf3', fontSize: '0.76rem', fontWeight: '700',
+                                display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: '4px',
+                                textTransform: 'lowercase', cursor: 'default'
+                              }}>
+                                <span style={{ color: '#d29922', fontSize: '0.9rem' }}>📂</span>
+                                <span>{folderName}</span>
+                                <span style={{ color: '#8b949e', fontSize: '0.65rem', fontWeight: '400', background: 'rgba(255,255,255,0.04)', padding: '1px 5px', borderRadius: '10px', marginLeft: 'auto' }}>{items.length}</span>
+                              </div>
+
+                              {/* Files list */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', borderLeft: '1px dashed rgba(48,54,61,0.4)', marginLeft: '10px', paddingLeft: '6px', marginTop: '2px' }}>
+                                {items.map((log) => {
+                                  const isSelected = activeLog?.id === log.id;
+                                  const isErr = log.statusCode >= 400;
+                                  const methodColor = log.method === 'GET' ? '#58a6ff' : log.method === 'POST' ? '#3fb950' : log.method === 'DELETE' ? '#f85149' : '#d29922';
+                                  return (
+                                    <button
+                                      key={log.id}
+                                      onClick={() => setExpandedLogId(log.id)}
+                                      style={{
+                                        display: 'flex', alignItems: 'center', gap: '6px',
+                                        background: isSelected ? 'rgba(56,139,253,0.15)' : 'transparent',
+                                        border: 'none', borderRadius: '4px', textAlign: 'left',
+                                        padding: '5px 8px', cursor: 'pointer', width: '100%',
+                                        outline: 'none', transition: 'all 0.1s'
+                                      }}
+                                    >
+                                      <span style={{ fontSize: '0.74rem', color: isSelected ? '#58a6ff' : '#c9d1d9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontFamily: 'monospace' }}>
+                                        📄 {getLogFilename(log)}
+                                      </span>
+                                      <span style={{
+                                        width: '6px', height: '6px', borderRadius: '50%',
+                                        background: isErr ? '#f85149' : '#3fb950',
+                                        boxShadow: isErr ? '0 0 6px #f85149' : '0 0 6px #3fb950'
+                                      }} />
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  ) : (
-                    <div style={{ padding: '64px', textAlign: 'center', color: '#8b949e', fontSize: '0.88rem', background: 'rgba(22,27,34,0.1)', border: '1px dashed rgba(48,54,61,0.3)', borderRadius: '8px' }}>
-                      No API log records found matching your filters.
+
+                    {/* RIGHT PANE: Code Editor */}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: '320px' }}>
+                      {/* Editor Tabs Header */}
+                      <div style={{
+                        height: '35px', background: '#161b22', borderBottom: '1px solid rgba(48,54,61,0.5)',
+                        display: 'flex', alignItems: 'center'
+                      }}>
+                        {activeLog && (
+                          <div style={{
+                            padding: '0 16px', background: '#0d1117', height: '100%',
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            borderTop: '2px solid #f78166', borderRight: '1px solid rgba(48,54,61,0.5)',
+                            color: '#e6edf3', fontSize: '0.76rem', fontFamily: 'monospace'
+                          }}>
+                            <span style={{ color: activeLog.method === 'GET' ? '#58a6ff' : activeLog.method === 'POST' ? '#3fb950' : '#f78166' }}>
+                              {activeLog.method}
+                            </span>
+                            <span>{getLogFilename(activeLog)}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Editor Console */}
+                      <div style={{ flex: 1, padding: '16px', overflowY: 'auto' }}>
+                        {renderEditorContent(activeLog)}
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })()
+
 
           ) : activeTab === 'analytics' ? (
             // ==========================================
