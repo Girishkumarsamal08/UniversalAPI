@@ -736,7 +736,7 @@ export default function App() {
     password: '',
     organizationName: '',
     department: 'Engineering',
-    role: 'Developer'
+    role: 'CTO'
   });
   const [loginError, setLoginError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
