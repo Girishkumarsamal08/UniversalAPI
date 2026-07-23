@@ -128,6 +128,174 @@ router.post('/:name/disconnect', authMiddleware, async (req: Request, res: Respo
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// REAL HUBSPOT OAUTH 2.0 FLOW
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * GET /providers/hubspot/authorize
+ * Step 1 — Redirect browser to HubSpot OAuth consent screen
+ */
+router.get('/hubspot/authorize', authMiddleware, (req: Request, res: Response) => {
+  const clientId = process.env.HUBSPOT_CLIENT_ID;
+  const redirectUri = process.env.HUBSPOT_REDIRECT_URI;
+
+  if (!clientId || clientId === 'your_hubspot_client_id') {
+    return res.status(503).json({
+      success: false,
+      error: 'HubSpot credentials not configured. Please set HUBSPOT_CLIENT_ID and HUBSPOT_CLIENT_SECRET in your .env file.',
+    });
+  }
+
+  // Store userId in state param so we can attribute the callback to the right user
+  const state = Buffer.from(JSON.stringify({ userId: req.user!.id })).toString('base64');
+
+  const scopes = [
+    'crm.objects.contacts.read',
+    'crm.objects.contacts.write',
+    'crm.objects.companies.read',
+    'crm.objects.companies.write',
+    'crm.objects.deals.read',
+  ].join(' ');
+
+  const authUrl = new URL('https://app.hubspot.com/oauth/authorize');
+  authUrl.searchParams.set('client_id', clientId);
+  authUrl.searchParams.set('redirect_uri', redirectUri!);
+  authUrl.searchParams.set('scope', scopes);
+  authUrl.searchParams.set('state', state);
+
+  res.redirect(authUrl.toString());
+});
+
+/**
+ * GET /providers/hubspot/callback
+ * Step 2 — HubSpot redirects here with ?code=XXX after user grants consent
+ * Exchanges the code for access_token + refresh_token and saves to DB
+ */
+router.get('/hubspot/callback', async (req: Request, res: Response) => {
+  const { code, state, error } = req.query;
+
+  // User denied authorization
+  if (error) {
+    return res.redirect(`${process.env.ALLOWED_ORIGINS?.split(',')[0] || 'http://localhost:5173'}?hubspot_error=${encodeURIComponent(String(error))}`);
+  }
+
+  if (!code || !state) {
+    return res.status(400).json({ success: false, error: 'Missing code or state parameter' });
+  }
+
+  // Decode userId from state
+  let userId: string;
+  try {
+    const decoded = JSON.parse(Buffer.from(String(state), 'base64').toString('utf8'));
+    userId = decoded.userId;
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : 'Invalid state parameter';
+    return res.status(400).json({ success: false, error: errMsg });
+  }
+
+  try {
+    // Exchange authorization code for tokens
+    const tokenRes = await fetch('https://api.hubapi.com/oauth/v1/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: process.env.HUBSPOT_CLIENT_ID!,
+        client_secret: process.env.HUBSPOT_CLIENT_SECRET!,
+        redirect_uri: process.env.HUBSPOT_REDIRECT_URI!,
+        code: String(code),
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      const err: any = await tokenRes.json();
+      throw new Error(err.message || `Token exchange failed: ${tokenRes.status}`);
+    }
+
+    const tokens: any = await tokenRes.json();
+    const { access_token, refresh_token, expires_in } = tokens;
+
+    // Persist tokens to DB
+    await prisma.integration.upsert({
+      where: { userId_provider: { userId, provider: 'hubspot' } },
+      update: {
+        accessToken: access_token,
+        refreshToken: refresh_token || null,
+        expiresAt: expires_in ? new Date(Date.now() + expires_in * 1000) : null,
+        status: 'Connected',
+      },
+      create: {
+        userId,
+        provider: 'hubspot',
+        accessToken: access_token,
+        refreshToken: refresh_token || null,
+        expiresAt: expires_in ? new Date(Date.now() + expires_in * 1000) : null,
+        status: 'Connected',
+      },
+    });
+
+    // Redirect back to frontend with success signal
+    const frontendUrl = process.env.ALLOWED_ORIGINS?.split(',')[0] || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}?hubspot_connected=true`);
+  } catch (err: any) {
+    const frontendUrl = process.env.ALLOWED_ORIGINS?.split(',')[0] || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}?hubspot_error=${encodeURIComponent(err.message || 'Token exchange failed')}`);
+  }
+});
+
+/**
+ * POST /providers/hubspot/refresh
+ * Refreshes HubSpot access token using the stored refresh token
+ * HubSpot access tokens expire every 30 minutes
+ */
+router.post('/hubspot/refresh', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const integration = await prisma.integration.findUnique({
+      where: { userId_provider: { userId: req.user!.id, provider: 'hubspot' } },
+    });
+
+    if (!integration || !integration.refreshToken) {
+      return sendError(res, 'No HubSpot refresh token found. Please re-connect your HubSpot account.', 404);
+    }
+
+    const tokenRes = await fetch('https://api.hubapi.com/oauth/v1/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: process.env.HUBSPOT_CLIENT_ID!,
+        client_secret: process.env.HUBSPOT_CLIENT_SECRET!,
+        refresh_token: integration.refreshToken,
+      }),
+    });
+
+    if (!tokenRes.ok) {
+    const tokenErr: any = await tokenRes.json();
+      throw new Error(tokenErr.message || `Token refresh failed: ${tokenRes.status}`);    }
+
+    const tokens: any = await tokenRes.json();
+
+    await prisma.integration.update({
+      where: { userId_provider: { userId: req.user!.id, provider: 'hubspot' } },
+      data: {
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token || integration.refreshToken,
+        expiresAt: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null,
+        status: 'Connected',
+      },
+    });
+
+    sendSuccess(res, { expiresIn: tokens.expires_in }, 'HubSpot access token refreshed successfully');
+  } catch (err: any) {
+    sendError(res, err.message || 'Failed to refresh HubSpot token');
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MOCK OAUTH SIMULATE PAGE (Dev Mode)
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * GET /providers/:name/oauth-simulate
  * Displays a realistic mock OAuth login consent page
