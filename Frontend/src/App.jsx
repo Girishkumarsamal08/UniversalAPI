@@ -935,6 +935,10 @@ export default function App() {
   const [logMethod, setLogMethod] = useState('ALL');
   const [expandedLogId, setExpandedLogId] = useState(null);
 
+  // Interactive API Documentation States
+  const [selectedDocEndpoint, setSelectedDocEndpoint] = useState('GET_companies');
+  const [activeGuideTab, setActiveGuideTab] = useState('hubspot');
+
   // Feature Matrix states
   const [fmTab, setFmTab] = useState('build');
   const [fmBuildEndpoint, setFmBuildEndpoint] = useState('contacts/sync');
@@ -3012,182 +3016,356 @@ export default function App() {
 
           ) : activeTab === 'dashboard' ? (
             // ==========================================
-            // 1. DYNAMIC DUAL-ROLES DASHBOARDS
+            // Redesigned Creative Dashboard Tab
             // ==========================================
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-              {/* Telemetry Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-                <div style={{ background: 'rgba(31,111,235,0.04)', border: '1px solid rgba(31,111,235,0.15)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <span style={{ color: '#8b949e', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase' }}>Scope role</span>
-                  <h3 style={{ color: '#58a6ff', fontSize: '1.45rem', fontWeight: '800', margin: 0 }}>{currentUser?.role}</h3>
-                  <span style={{ color: '#8b949e', fontSize: '0.72rem' }}>Role-specific layouts enabled</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Header Gradient Banner */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(31,111,235,0.06) 0%, rgba(139,92,246,0.06) 100%)',
+                border: '1px solid rgba(56,139,253,0.18)', borderRadius: '16px', padding: '24px',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.15)'
+              }}>
+                <div>
+                  <h2 style={{ margin: 0, color: '#e6edf3', fontSize: '1.3rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    🚀 Universal Control Console
+                  </h2>
+                  <p style={{ margin: '4px 0 0', color: '#8b949e', fontSize: '0.82rem' }}>
+                    Standardize fragment CRM records, authorize scopes, and supervise real-time connector logs.
+                  </p>
                 </div>
-
-                <div style={{ background: 'rgba(139,92,246,0.04)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <span style={{ color: '#8b949e', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase' }}>Company Workspace</span>
-                  <h3 style={{ color: '#a78bfa', fontSize: '1.3rem', fontWeight: '800', margin: 0, textTransform: 'capitalize' }}>
-                    {currentUser?.email.split('@')[1].split('.')[0]}
-                  </h3>
-                  <span style={{ color: '#8b949e', fontSize: '0.72rem' }}>Tenant Isolation Active</span>
-                </div>
-
-                <div style={{ background: 'rgba(38,184,96,0.04)', border: '1px solid rgba(38,184,96,0.15)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <span style={{ color: '#8b949e', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase' }}>Integrations</span>
-                  <h3 style={{ color: '#2ed573', fontSize: '1.45rem', fontWeight: '800', margin: 0 }}>{connectedCrmCount} Connected</h3>
-                  <span style={{ color: '#8b949e', fontSize: '0.72rem' }}>Shared at organization scope</span>
-                </div>
-
-                <div style={{ background: 'rgba(255,193,7,0.04)', border: '1px solid rgba(255,193,7,0.15)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <span style={{ color: '#8b949e', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase' }}>User Status</span>
-                  <h3 style={{ color: '#2ed573', fontSize: '1.45rem', fontWeight: '800', margin: 0 }}>{currentUser?.status}</h3>
-                  <span style={{ color: '#8b949e', fontSize: '0.72rem' }}>Verified account</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(7,9,14,0.4)', padding: '6px 14px', borderRadius: '20px', border: '1px solid rgba(48,54,61,0.6)' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2ed573', boxShadow: '0 0 8px #2ed573' }} />
+                  <span style={{ color: '#e6edf3', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tenant Isolation Active</span>
                 </div>
               </div>
 
-              {/* Dynamic content segments based on role */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+              {/* High-fidelity Stat Cards Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+                <div style={{
+                  background: 'rgba(33,38,45,0.3)', border: '1px solid rgba(48,54,61,0.5)',
+                  borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '6px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.1)', transition: 'border-color 0.2s'
+                }}>
+                  <span style={{ color: '#8b949e', fontSize: '0.68rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Access Scope Role</span>
+                  <h3 style={{ color: '#58a6ff', fontSize: '1.4rem', fontWeight: '800', margin: 0 }}>{currentUser?.role}</h3>
+                  <span style={{ color: '#8b949e', fontSize: '0.74rem' }}>Role-specific policies enforced</span>
+                </div>
 
-                {/* A. CTO / Admin approvals panel */}
-                {(currentUser?.role === 'CTO' || currentUser?.role === 'Admin') && (
-                  <div style={{ background: 'rgba(22,27,34,0.3)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '12px', padding: '24px', gridColumn: 'span 2' }}>
-                    <h4 style={{ color: '#e6edf3', margin: '0 0 16px', fontSize: '0.9rem', fontWeight: '700', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Lock size={15} color="#58a6ff" /> Workspace Approvals Console ({approvals.length} pending)
-                    </h4>
+                <div style={{
+                  background: 'rgba(33,38,45,0.3)', border: '1px solid rgba(48,54,61,0.5)',
+                  borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '6px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                }}>
+                  <span style={{ color: '#8b949e', fontSize: '0.68rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Workspace</span>
+                  <h3 style={{ color: '#a78bfa', fontSize: '1.3rem', fontWeight: '800', margin: 0, textTransform: 'capitalize' }}>
+                    {currentUser?.email.split('@')[1].split('.')[0]}
+                  </h3>
+                  <span style={{ color: '#8b949e', fontSize: '0.74rem' }}>Tenant boundary active</span>
+                </div>
 
-                    {approvals.length > 0 ? (
-                      <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
-                          <thead>
-                            <tr style={{ borderBottom: '1px solid rgba(48,54,61,0.4)', textAlign: 'left', color: '#8b949e' }}>
-                              <th style={{ padding: '8px 12px' }}>Requester</th>
-                              <th style={{ padding: '8px 12px' }}>Action</th>
-                              <th style={{ padding: '8px 12px' }}>Target ID</th>
-                              <th style={{ padding: '8px 12px', textAlign: 'right' }}>Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {approvals.map((reqItem) => (
-                              <tr key={reqItem.id} style={{ borderBottom: '1px solid rgba(48,54,61,0.2)' }}>
-                                <td style={{ padding: '12px' }}>
-                                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <span style={{ color: '#e6edf3', fontWeight: '700' }}>{reqItem.requester?.name || 'Unknown'}</span>
-                                    <span style={{ color: '#8b949e', fontSize: '0.72rem' }}>{reqItem.requester?.email}</span>
-                                  </div>
-                                </td>
-                                <td style={{ padding: '12px', fontFamily: 'monospace', color: '#a78bfa' }}>{reqItem.action}</td>
-                                <td style={{ padding: '12px', color: '#8b949e' }}>{reqItem.targetId || '—'}</td>
-                                <td style={{ padding: '12px', textAlign: 'right', display: 'flex', gap: '6px', justifyContent: 'flex-end', marginTop: '4px' }}>
-                                  <button onClick={() => handleResolveApproval(reqItem.id, 'APPROVED')} style={{ padding: '4px 10px', background: 'rgba(46,213,115,0.12)', border: '1px solid rgba(46,213,115,0.25)', color: '#2ed573', borderRadius: '4px', cursor: 'pointer', fontSize: '0.74rem', fontWeight: '700' }}>Approve</button>
-                                  <button onClick={() => handleResolveApproval(reqItem.id, 'REJECTED')} style={{ padding: '4px 10px', background: 'rgba(248,81,73,0.12)', border: '1px solid rgba(248,81,73,0.25)', color: '#f85149', borderRadius: '4px', cursor: 'pointer', fontSize: '0.74rem', fontWeight: '700' }}>Reject</button>
-                                </td>
+                <div style={{
+                  background: 'rgba(33,38,45,0.3)', border: '1px solid rgba(48,54,61,0.5)',
+                  borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '6px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                }}>
+                  <span style={{ color: '#8b949e', fontSize: '0.68rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>CRM Connectors</span>
+                  <h3 style={{ color: '#2ed573', fontSize: '1.4rem', fontWeight: '800', margin: 0 }}>{connectedCrmCount} Connected</h3>
+                  <span style={{ color: '#8b949e', fontSize: '0.74rem' }}>Shared organization vault</span>
+                </div>
+
+                <div style={{
+                  background: 'rgba(33,38,45,0.3)', border: '1px solid rgba(48,54,61,0.5)',
+                  borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '6px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                }}>
+                  <span style={{ color: '#8b949e', fontSize: '0.68rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Credentials Security</span>
+                  <h3 style={{ color: '#ffd700', fontSize: '1.35rem', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Shield size={16} color="#ffd700" /> AES-256-GCM
+                  </h3>
+                  <span style={{ color: '#8b949e', fontSize: '0.74rem' }}>Zero credentials exposure</span>
+                </div>
+              </div>
+
+              {/* Main Content Workspace Split */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 2fr))', gap: '24px' }}>
+                
+                {/* LEFT COLUMN: Controls, Charts, Guides */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', gridColumn: 'span 2' }}>
+                  
+                  {/* A. Workspace Approvals Console (Preserved Logic) */}
+                  {(currentUser?.role === 'CTO' || currentUser?.role === 'Admin') && (
+                    <div style={{
+                      background: 'rgba(22,27,34,0.4)', border: '1px solid rgba(48,54,61,0.8)',
+                      borderRadius: '12px', padding: '24px', boxShadow: '0 8px 30px rgba(0,0,0,0.2)'
+                    }}>
+                      <h4 style={{ color: '#e6edf3', margin: '0 0 16px', fontSize: '0.88rem', fontWeight: '700', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Lock size={15} color="#58a6ff" /> Workspace Approvals Console ({approvals.length} pending)
+                      </h4>
+
+                      {approvals.length > 0 ? (
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                            <thead>
+                              <tr style={{ borderBottom: '1px solid rgba(48,54,61,0.4)', textAlign: 'left', color: '#8b949e' }}>
+                                <th style={{ padding: '8px 12px' }}>Requester</th>
+                                <th style={{ padding: '8px 12px' }}>Action</th>
+                                <th style={{ padding: '8px 12px' }}>Target ID</th>
+                                <th style={{ padding: '8px 12px', textAlign: 'right' }}>Actions</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <div style={{ padding: '24px', textAlign: 'center', color: '#8b949e', border: '1px dashed rgba(48,54,61,0.3)', borderRadius: '8px' }}>
-                        No pending integration, credential rotation, or registration requests in the queue.
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* B. Regional Head regional widgets */}
-                {currentUser?.role === 'Regional Head' && (
-                  <div style={{ background: 'rgba(22,27,34,0.3)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '12px', padding: '24px' }}>
-                    <h4 style={{ color: '#e6edf3', margin: '0 0 12px', fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase' }}>Regional monitoring</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.82rem', color: '#8b949e' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.01)', borderRadius: '6px' }}>
-                        <span>US-East latency</span>
-                        <strong style={{ color: '#2ed573' }}>12ms</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.01)', borderRadius: '6px' }}>
-                        <span>EU-Central latency</span>
-                        <strong style={{ color: '#2ed573' }}>48ms</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.01)', borderRadius: '6px' }}>
-                        <span>AP-South latency</span>
-                        <strong style={{ color: '#d29922' }}>112ms</strong>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* C. Engineering Manager status widgets */}
-                {currentUser?.role === 'Engineering Manager' && (
-                  <div style={{ background: 'rgba(22,27,34,0.3)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '12px', padding: '24px' }}>
-                    <h4 style={{ color: '#e6edf3', margin: '0 0 12px', fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase' }}>Deployments & Builds</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem' }}>
-                      <div style={{ padding: '8px', borderLeft: '2px solid #58a6ff', background: 'rgba(255,255,255,0.01)' }}>
-                        <span style={{ color: '#e6edf3', fontWeight: '700', display: 'block' }}>Production build #v1.4.2</span>
-                        <span style={{ color: '#8b949e', fontSize: '0.72rem' }}>Deployed successfully 2h ago</span>
-                      </div>
-                      <div style={{ padding: '8px', borderLeft: '2px solid #2ed573', background: 'rgba(255,255,255,0.01)' }}>
-                        <span style={{ color: '#e6edf3', fontWeight: '700', display: 'block' }}>Staging connector build</span>
-                        <span style={{ color: '#8b949e', fontSize: '0.72rem' }}>Completed unit tests successfully</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* D. Team Lead sprint board simulator */}
-                {currentUser?.role === 'Team Lead' && (
-                  <div style={{ background: 'rgba(22,27,34,0.3)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '12px', padding: '24px' }}>
-                    <h4 style={{ color: '#e6edf3', margin: '0 0 12px', fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase' }}>Sprint Progress Velocity</h4>
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', height: '100px', padding: '10px 0' }}>
-                      <div style={{ flex: 1, height: '40%', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', position: 'relative' }}><span style={{ position: 'absolute', bottom: '-16px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.62rem', color: '#8b949e' }}>W1</span></div>
-                      <div style={{ flex: 1, height: '65%', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', position: 'relative' }}><span style={{ position: 'absolute', bottom: '-16px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.62rem', color: '#8b949e' }}>W2</span></div>
-                      <div style={{ flex: 1, height: '90%', background: 'linear-gradient(to top, #1f6feb, #8b5cf6)', borderRadius: '3px', position: 'relative' }}><span style={{ position: 'absolute', bottom: '-16px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.62rem', color: '#e6edf3', fontWeight: '700' }}>W3</span></div>
-                    </div>
-                  </div>
-                )}
-
-                {/* E. Developer active projects */}
-                {(currentUser?.role === 'Developer' || currentUser?.role === 'Senior Developer') && (
-                  <div style={{ background: 'rgba(22,27,34,0.3)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '12px', padding: '24px' }}>
-                    <h4 style={{ color: '#e6edf3', margin: '0 0 12px', fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase' }}>Assigned Projects ({projects.length})</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {projects.map((proj) => (
-                        <div key={proj.id} style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(48,54,61,0.3)', borderRadius: '6px' }}>
-                          <span style={{ color: '#e6edf3', fontWeight: '700', fontSize: '0.82rem', display: 'block' }}>{proj.name}</span>
-                          <span style={{ color: '#8b949e', fontSize: '0.74rem' }}>{proj.description || 'No description provided'}</span>
+                            </thead>
+                            <tbody>
+                              {approvals.map((reqItem) => (
+                                <tr key={reqItem.id} style={{ borderBottom: '1px solid rgba(48,54,61,0.2)' }}>
+                                  <td style={{ padding: '12px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                      <span style={{ color: '#e6edf3', fontWeight: '700' }}>{reqItem.requester?.name || 'Unknown'}</span>
+                                      <span style={{ color: '#8b949e', fontSize: '0.72rem' }}>{reqItem.requester?.email}</span>
+                                    </div>
+                                  </td>
+                                  <td style={{ padding: '12px', fontFamily: 'monospace', color: '#a78bfa' }}>{reqItem.action}</td>
+                                  <td style={{ padding: '12px', color: '#8b949e' }}>{reqItem.targetId || '—'}</td>
+                                  <td style={{ padding: '12px', textAlign: 'right', display: 'flex', gap: '6px', justifyContent: 'flex-end', marginTop: '4px' }}>
+                                    <button onClick={() => handleResolveApproval(reqItem.id, 'APPROVED')} style={{ padding: '4px 10px', background: 'rgba(46,213,115,0.12)', border: '1px solid rgba(46,213,115,0.25)', color: '#2ed573', borderRadius: '4px', cursor: 'pointer', fontSize: '0.74rem', fontWeight: '700' }}>Approve</button>
+                                    <button onClick={() => handleResolveApproval(reqItem.id, 'REJECTED')} style={{ padding: '4px 10px', background: 'rgba(248,81,73,0.12)', border: '1px solid rgba(248,81,73,0.25)', color: '#f85149', borderRadius: '4px', cursor: 'pointer', fontSize: '0.74rem', fontWeight: '700' }}>Reject</button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
+                      ) : (
+                        <div style={{ padding: '24px', textAlign: 'center', color: '#8b949e', border: '1px dashed rgba(48,54,61,0.3)', borderRadius: '8px' }}>
+                          No pending integration, credential rotation, or registration requests in the queue.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* B. Live Telemetry Area Graphic (Interactive Line Chart) */}
+                  <div style={{
+                    background: 'rgba(22,27,34,0.4)', border: '1px solid rgba(48,54,61,0.6)',
+                    borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px'
+                  }}>
+                    <h4 style={{ color: '#e6edf3', margin: 0, fontSize: '0.88rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <BarChart3 size={15} color="#58a6ff" /> Real-time Gateway Throughput (Last 7 Days)
+                    </h4>
+                    
+                    <div style={{ position: 'relative', height: '140px', marginTop: '12px' }}>
+                      <svg style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+                        <defs>
+                          <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor="rgba(31,111,235,0.45)" />
+                            <stop offset="100%" stopColor="rgba(31,111,235,0)" />
+                          </linearGradient>
+                          <linearGradient id="strokeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#1f6feb" />
+                            <stop offset="50%" stopColor="#8b5cf6" />
+                            <stop offset="100%" stopColor="#2ed573" />
+                          </linearGradient>
+                        </defs>
+                        {/* Grid guides */}
+                        <line x1="0%" y1="20" x2="100%" y2="20" stroke="rgba(48,54,61,0.2)" strokeDasharray="3" />
+                        <line x1="0%" y1="70" x2="100%" y2="70" stroke="rgba(48,54,61,0.2)" strokeDasharray="3" />
+                        <line x1="0%" y1="120" x2="100%" y2="120" stroke="rgba(48,54,61,0.2)" strokeDasharray="3" />
+                        
+                        {/* Area Fill */}
+                        <path d="M 0 120 L 0 60 L 80 80 L 160 30 L 240 90 L 320 20 L 400 45 L 480 85 L 560 10 L 640 50 L 720 120 Z" fill="url(#chartGradient)" />
+                        
+                        {/* Line Stroke */}
+                        <path d="M 0 60 L 80 80 L 160 30 L 240 90 L 320 20 L 400 45 L 480 85 L 560 10 L 640 50" fill="none" stroke="url(#strokeGradient)" strokeWidth="3" strokeLinecap="round" />
+                      </svg>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: '#8b949e', padding: '0 4px' }}>
+                      <span>Mon (42 hits)</span>
+                      <span>Tue (35 hits)</span>
+                      <span>Wed (68 hits)</span>
+                      <span>Thu (20 hits)</span>
+                      <span>Fri (94 hits)</span>
+                      <span>Sat (80 hits)</span>
+                      <span>Sun (112 hits)</span>
+                    </div>
+                  </div>
+
+                  {/* C. Interactive Connector Steps & Concepts (User Request) */}
+                  <div style={{
+                    background: 'rgba(22,27,34,0.4)', border: '1px solid rgba(48,54,61,0.6)',
+                    borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px'
+                  }}>
+                    <h4 style={{ color: '#e6edf3', margin: 0, fontSize: '0.88rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Activity size={15} color="#8b5cf6" /> CRM Connectors Setup Guides & Concepts
+                    </h4>
+                    <p style={{ margin: 0, color: '#8b949e', fontSize: '0.78rem', lineHeight: '1.4' }}>
+                      Understand integration patterns and step-by-step setups to register credential boundaries securely.
+                    </p>
+
+                    {/* Connector Tab Bar */}
+                    <div style={{ display: 'flex', borderBottom: '1px solid rgba(48,54,61,0.5)', gap: '8px', paddingBottom: '2px', marginTop: '6px' }}>
+                      {[
+                        { id: 'hubspot', label: 'HubSpot app' },
+                        { id: 'salesforce', label: 'Salesforce App' },
+                        { id: 'pipedrive', label: 'Pipedrive Settings' }
+                      ].map(t => (
+                        <button
+                          key={t.id}
+                          onClick={() => setActiveGuideTab(t.id)}
+                          style={{
+                            background: 'none', border: 'none', padding: '6px 12px',
+                            color: activeGuideTab === t.id ? '#58a6ff' : '#8b949e',
+                            borderBottom: activeGuideTab === t.id ? '2px solid #58a6ff' : 'none',
+                            fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer', outline: 'none'
+                          }}
+                        >
+                          {t.label}
+                        </button>
                       ))}
                     </div>
-                  </div>
-                )}
 
-                {/* F. QA tests statuses */}
-                {currentUser?.role === 'QA Engineer' && (
-                  <div style={{ background: 'rgba(22,27,34,0.3)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '12px', padding: '24px' }}>
-                    <h4 style={{ color: '#e6edf3', margin: '0 0 12px', fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase' }}>QA Test Suites</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#c9d1d9' }}>
-                        <span>Adapter transformation tests</span>
-                        <strong style={{ color: '#3fb950' }}>100% Passed</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#c9d1d9' }}>
-                        <span>Token refresh concurrency locks</span>
-                        <strong style={{ color: '#3fb950' }}>100% Passed</strong>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                    {/* Dynamic Setup guide instructions */}
+                    <div style={{ background: 'rgba(7,9,14,0.4)', border: '1px solid rgba(48,54,61,0.4)', borderRadius: '8px', padding: '16px' }}>
+                      {activeGuideTab === 'hubspot' && (
+                        <div>
+                          <strong style={{ color: '#ff7a00', fontSize: '0.8rem', display: 'block', marginBottom: '8px' }}>HubSpot Integration Steps:</strong>
+                          <ol style={{ margin: 0, paddingLeft: '18px', color: '#c9d1d9', fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '6px', lineHeight: '1.5' }}>
+                            <li>Log in to your <strong>HubSpot Account</strong> dashboard.</li>
+                            <li>Go to <strong>Settings &rarr; Integrations &rarr; Private Apps</strong>.</li>
+                            <li>Click <strong>Create Private App</strong> and name it <code>Universal Gateway Connector</code>.</li>
+                            <li>Navigate to <strong>Scopes</strong> and select read-level access: <code>crm.objects.contacts.read</code> and <code>crm.objects.companies.read</code>.</li>
+                            <li>Click <strong>Create App</strong> and copy the generated Access Token.</li>
+                            <li>Open the <strong>Integrations</strong> tab above, click <strong>Connect HubSpot</strong>, and paste your token!</li>
+                          </ol>
+                        </div>
+                      )}
 
-                {/* General operational stats */}
-                <div style={{ background: 'rgba(22,27,34,0.3)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '12px', padding: '24px' }}>
-                  <h4 style={{ color: '#e6edf3', margin: '0 0 16px', fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase' }}>Workspace status</h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(7,9,14,0.3)', borderRadius: '8px', border: '1px solid rgba(48,54,61,0.3)' }}>
-                      <span style={{ color: '#c9d1d9', fontSize: '0.82rem', fontWeight: '600' }}>Tenant Data Isolation</span>
-                      <span style={{ color: '#3fb950', fontSize: '0.78rem', fontWeight: '700' }}>Strict</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(7,9,14,0.3)', borderRadius: '8px', border: '1px solid rgba(48,54,61,0.3)' }}>
-                      <span style={{ color: '#c9d1d9', fontSize: '0.82rem', fontWeight: '600' }}>Department Scoping</span>
-                      <span style={{ color: '#58a6ff', fontSize: '0.78rem', fontWeight: '700' }}>Active ({currentUser?.department})</span>
+                      {activeGuideTab === 'salesforce' && (
+                        <div>
+                          <strong style={{ color: '#00a1e0', fontSize: '0.8rem', display: 'block', marginBottom: '8px' }}>Salesforce Integration Steps:</strong>
+                          <ol style={{ margin: 0, paddingLeft: '18px', color: '#c9d1d9', fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '6px', lineHeight: '1.5' }}>
+                            <li>Sign in to your <strong>Salesforce Developer</strong> environment.</li>
+                            <li>Go to <strong>Setup &rarr; App Manager</strong> and select <strong>New Connected App</strong>.</li>
+                            <li>Enable <strong>OAuth settings</strong> and specify the callback URL of the integration gateway.</li>
+                            <li>Grant OAuth scopes: <code>Access contacts</code> and <code>Manage organization configurations</code>.</li>
+                            <li>Save the app and copy your <strong>Consumer Key</strong> and <strong>Consumer Secret</strong> keys.</li>
+                            <li>Open the <strong>Integrations</strong> tab above, click <strong>Connect Salesforce</strong>, and submit your credential parameters.</li>
+                          </ol>
+                        </div>
+                      )}
+
+                      {activeGuideTab === 'pipedrive' && (
+                        <div>
+                          <strong style={{ color: '#2ed573', fontSize: '0.8rem', display: 'block', marginBottom: '8px' }}>Pipedrive Integration Steps:</strong>
+                          <ol style={{ margin: 0, paddingLeft: '18px', color: '#c9d1d9', fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '6px', lineHeight: '1.5' }}>
+                            <li>Log in to your <strong>Pipedrive Account</strong>.</li>
+                            <li>Click your profile avatar in the top-right corner and select <strong>Personal Preferences</strong>.</li>
+                            <li>Navigate to the <strong>API</strong> tab in settings.</li>
+                            <li>Copy your unique <strong>Personal API Token</strong>.</li>
+                            <li>Open the <strong>Integrations</strong> tab above, click <strong>Connect Pipedrive</strong>, and enter the copied key!</li>
+                          </ol>
+                        </div>
+                      )}
                     </div>
                   </div>
+                </div>
+
+                {/* RIGHT COLUMN: Scopes, Statuses & Regional Monitors */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  
+                  {/* Scope Status Widget */}
+                  <div style={{
+                    background: 'rgba(22,27,34,0.4)', border: '1px solid rgba(48,54,61,0.6)',
+                    borderRadius: '12px', padding: '24px'
+                  }}>
+                    <h4 style={{ color: '#e6edf3', margin: '0 0 12px', fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase' }}>Workspace Status</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(7,9,14,0.3)', borderRadius: '8px', border: '1px solid rgba(48,54,61,0.3)' }}>
+                        <span style={{ color: '#c9d1d9', fontSize: '0.82rem', fontWeight: '600' }}>Tenant Data Isolation</span>
+                        <span style={{ color: '#3fb950', fontSize: '0.78rem', fontWeight: '700' }}>Strict</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(7,9,14,0.3)', borderRadius: '8px', border: '1px solid rgba(48,54,61,0.3)' }}>
+                        <span style={{ color: '#c9d1d9', fontSize: '0.82rem', fontWeight: '600' }}>Department Scoping</span>
+                        <span style={{ color: '#58a6ff', fontSize: '0.78rem', fontWeight: '700' }}>Active ({currentUser?.department})</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* B. Role-specific widget outputs */}
+                  {currentUser?.role === 'Regional Head' && (
+                    <div style={{ background: 'rgba(22,27,34,0.3)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '12px', padding: '24px' }}>
+                      <h4 style={{ color: '#e6edf3', margin: '0 0 12px', fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase' }}>Regional Latencies</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.82rem', color: '#8b949e' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.01)', borderRadius: '6px' }}>
+                          <span>US-East</span>
+                          <strong style={{ color: '#2ed573' }}>12ms</strong>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.01)', borderRadius: '6px' }}>
+                          <span>EU-Central</span>
+                          <strong style={{ color: '#2ed573' }}>48ms</strong>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.01)', borderRadius: '6px' }}>
+                          <span>AP-South</span>
+                          <strong style={{ color: '#d29922' }}>112ms</strong>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {currentUser?.role === 'Engineering Manager' && (
+                    <div style={{ background: 'rgba(22,27,34,0.3)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '12px', padding: '24px' }}>
+                      <h4 style={{ color: '#e6edf3', margin: '0 0 12px', fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase' }}>Deployments & Builds</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem' }}>
+                        <div style={{ padding: '8px', borderLeft: '2px solid #58a6ff', background: 'rgba(255,255,255,0.01)' }}>
+                          <span style={{ color: '#e6edf3', fontWeight: '700', display: 'block' }}>Production build #v1.4.2</span>
+                          <span style={{ color: '#8b949e', fontSize: '0.72rem' }}>Deployed successfully 2h ago</span>
+                        </div>
+                        <div style={{ padding: '8px', borderLeft: '2px solid #2ed573', background: 'rgba(255,255,255,0.01)' }}>
+                          <span style={{ color: '#e6edf3', fontWeight: '700', display: 'block' }}>Staging connector build</span>
+                          <span style={{ color: '#8b949e', fontSize: '0.72rem' }}>Completed unit tests successfully</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {currentUser?.role === 'Team Lead' && (
+                    <div style={{ background: 'rgba(22,27,34,0.3)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '12px', padding: '24px' }}>
+                      <h4 style={{ color: '#e6edf3', margin: '0 0 12px', fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase' }}>Sprint Progress Velocity</h4>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', height: '100px', padding: '10px 0' }}>
+                        <div style={{ flex: 1, height: '40%', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', position: 'relative' }}><span style={{ position: 'absolute', bottom: '-16px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.62rem', color: '#8b949e' }}>W1</span></div>
+                        <div style={{ flex: 1, height: '65%', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', position: 'relative' }}><span style={{ position: 'absolute', bottom: '-16px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.62rem', color: '#8b949e' }}>W2</span></div>
+                        <div style={{ flex: 1, height: '90%', background: 'linear-gradient(to top, #1f6feb, #8b5cf6)', borderRadius: '3px', position: 'relative' }}><span style={{ position: 'absolute', bottom: '-16px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.62rem', color: '#e6edf3', fontWeight: '700' }}>W3</span></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {(currentUser?.role === 'Developer' || currentUser?.role === 'Senior Developer') && (
+                    <div style={{ background: 'rgba(22,27,34,0.3)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '12px', padding: '24px' }}>
+                      <h4 style={{ color: '#e6edf3', margin: '0 0 12px', fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase' }}>Assigned Projects ({projects.length})</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {projects.map((proj) => (
+                          <div key={proj.id} style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(48,54,61,0.3)', borderRadius: '6px' }}>
+                            <span style={{ color: '#e6edf3', fontWeight: '700', fontSize: '0.82rem', display: 'block' }}>{proj.name}</span>
+                            <span style={{ color: '#8b949e', fontSize: '0.74rem' }}>{proj.description || 'No description provided'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {currentUser?.role === 'QA Engineer' && (
+                    <div style={{ background: 'rgba(22,27,34,0.3)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '12px', padding: '24px' }}>
+                      <h4 style={{ color: '#e6edf3', margin: '0 0 12px', fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase' }}>QA Test Suites</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#c9d1d9' }}>
+                          <span>Adapter transformation tests</span>
+                          <strong style={{ color: '#3fb950' }}>100% Passed</strong>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#c9d1d9' }}>
+                          <span>Token refresh concurrency locks</span>
+                          <strong style={{ color: '#3fb950' }}>100% Passed</strong>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -4368,23 +4546,255 @@ run();`}</pre>
 
           ) : activeTab === 'docs' ? (
             // ==========================================
-            // DOCUMENTATION
+            // Interactive API Documentation Portal
             // ==========================================
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', color: '#c9d1d9', fontSize: '0.84rem', lineHeight: '1.6' }}>
-              <div>
-                <h4 style={{ color: '#e6edf3', fontSize: '1rem', fontWeight: '700', marginBottom: '8px' }}>Project Overview</h4>
-                <p style={{ margin: 0 }}>
-                  The Universal API Platform abstracts fragmentation among multiple Customer Relationship Management (CRM) databases into a single, clean REST API endpoint structure. A developer integrates this platform once, and our backend polymorphic engines translate schemas for HubSpot, Salesforce, and Pipedrive adapters transparently.
-                </p>
-              </div>
+            (() => {
+              // Code templates map
+              const docSnippets = {
+                GET_companies: {
+                  curl: `curl -X GET "http://localhost:3000/api/v1/companies?limit=10" \\\n  -H "Authorization: Bearer YOUR_JWT_TOKEN" \\\n  -H "Content-Type: application/json"`,
+                  javascript: `fetch("http://localhost:3000/api/v1/companies?limit=10", {\n  method: "GET",\n  headers: {\n    "Authorization": "Bearer YOUR_JWT_TOKEN",\n    "Content-Type": "application/json"\n  }\n})\n.then(res => res.json())\n.then(data => console.log(data));`,
+                  python: `import requests\n\nurl = "http://localhost:3000/api/v1/companies"\nheaders = {\n    "Authorization": "Bearer YOUR_JWT_TOKEN",\n    "Content-Type": "application/json"\n}\nparams = {"limit": 10}\n\nresponse = requests.get(url, headers=headers, params=params)\nprint(response.json())`,
+                  go: `package main\n\nimport (\n\t"fmt"\n\t"net/http"\n\t"io"\n)\n\nfunc main() {\n\turl := "http://localhost:3000/api/v1/companies?limit=10"\n\treq, _ := http.NewRequest("GET", url, nil)\n\treq.Header.Add("Authorization", "Bearer YOUR_JWT_TOKEN")\n\t\n\tres, _ := http.DefaultClient.Do(req)\n\tdefer res.Body.Close()\n\tbody, _ := io.ReadAll(res.Body)\n\tfmt.Println(string(body))\n}`
+                },
+                POST_companies: {
+                  curl: `curl -X POST "http://localhost:3000/api/v1/companies" \\\n  -H "Authorization: Bearer YOUR_JWT_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "name": "Acme Global",\n    "website": "https://acmeglobal.com",\n    "industry": "Technology",\n    "size": "5,000+",\n    "provider": "mock"\n  }'`,
+                  javascript: `fetch("http://localhost:3000/api/v1/companies", {\n  method: "POST",\n  headers: {\n    "Authorization": "Bearer YOUR_JWT_TOKEN",\n    "Content-Type": "application/json"\n  },\n  body: JSON.stringify({\n    name: "Acme Global",\n    website: "https://acmeglobal.com",\n    industry: "Technology",\n    size: "5,000+",\n    provider: "mock"\n  })\n})\n.then(res => res.json())\n.then(data => console.log(data));`,
+                  python: `import requests\n\nurl = "http://localhost:3000/api/v1/companies"\nheaders = {\n    "Authorization": "Bearer YOUR_JWT_TOKEN",\n    "Content-Type": "application/json"\n}\npayload = {\n    "name": "Acme Global",\n    "website": "https://acmeglobal.com",\n    "industry": "Technology",\n    "size": "5,000+",\n    "provider": "mock"\n}\n\nresponse = requests.post(url, headers=headers, json=payload)\nprint(response.json())`,
+                  go: `package main\n\nimport (\n\t"fmt"\n\t"strings"\n\t"net/http"\n\t"io"\n)\n\nfunc main() {\n\turl := "http://localhost:3000/api/v1/companies"\n\tpayload := strings.NewReader(\`{"name": "Acme Global", "website": "https://acmeglobal.com", "industry": "Technology", "size": "5,000+", "provider": "mock"}\`)\n\treq, _ := http.NewRequest("POST", url, payload)\n\treq.Header.Add("Authorization", "Bearer YOUR_JWT_TOKEN")\n\treq.Header.Add("Content-Type", "application/json")\n\t\n\tres, _ := http.DefaultClient.Do(req)\n\tdefer res.Body.Close()\n\tbody, _ := io.ReadAll(res.Body)\n\tfmt.Println(string(body))\n}`
+                },
+                GET_contacts: {
+                  curl: `curl -X GET "http://localhost:3000/api/v1/contacts?limit=10" \\\n  -H "Authorization: Bearer YOUR_JWT_TOKEN" \\\n  -H "Content-Type: application/json"`,
+                  javascript: `fetch("http://localhost:3000/api/v1/contacts?limit=10", {\n  method: "GET",\n  headers: {\n    "Authorization": "Bearer YOUR_JWT_TOKEN",\n    "Content-Type": "application/json"\n  }\n})\n.then(res => res.json())\n.then(data => console.log(data));`,
+                  python: `import requests\n\nurl = "http://localhost:3000/api/v1/contacts"\nheaders = {\n    "Authorization": "Bearer YOUR_JWT_TOKEN",\n    "Content-Type": "application/json"\n}\nparams = {"limit": 10}\n\nresponse = requests.get(url, headers=headers, params=params)\nprint(response.json())`,
+                  go: `package main\n\nimport (\n\t"fmt"\n\t"net/http"\n\t"io"\n)\n\nfunc main() {\n\turl := "http://localhost:3000/api/v1/contacts?limit=10"\n\treq, _ := http.NewRequest("GET", url, nil)\n\treq.Header.Add("Authorization", "Bearer YOUR_JWT_TOKEN")\n\t\n\tres, _ := http.DefaultClient.Do(req)\n\tdefer res.Body.Close()\n\tbody, _ := io.ReadAll(res.Body)\n\tfmt.Println(string(body))\n}`
+                },
+                POST_contacts: {
+                  curl: `curl -X POST "http://localhost:3000/api/v1/contacts" \\\n  -H "Authorization: Bearer YOUR_JWT_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "name": "Alice Smith",\n    "email": "alice@gmail.com",\n    "phone": "555-0144",\n    "jobTitle": "Account Executive",\n    "provider": "mock"\n  }'`,
+                  javascript: `fetch("http://localhost:3000/api/v1/contacts", {\n  method: "POST",\n  headers: {\n    "Authorization": "Bearer YOUR_JWT_TOKEN",\n    "Content-Type": "application/json"\n  },\n  body: JSON.stringify({\n    name: "Alice Smith",\n    email: "alice@gmail.com",\n    phone: "555-0144",\n    jobTitle: "Account Executive",\n    provider: "mock"\n  })\n})\n.then(res => res.json())\n.then(data => console.log(data));`,
+                  python: `import requests\n\nurl = "http://localhost:3000/api/v1/contacts"\nheaders = {\n    "Authorization": "Bearer YOUR_JWT_TOKEN",\n    "Content-Type": "application/json"\n}\npayload = {\n    "name": "Alice Smith",\n    "email": "alice@gmail.com",\n    "phone": "555-0144",\n    "jobTitle": "Account Executive",\n    "provider": "mock"\n}\n\nresponse = requests.post(url, headers=headers, json=payload)\nprint(response.json())`,
+                  go: `package main\n\nimport (\n\t"fmt"\n\t"strings"\n\t"net/http"\n\t"io"\n)\n\nfunc main() {\n\turl := "http://localhost:3000/api/v1/contacts"\n\tpayload := strings.NewReader(\`{"name": "Alice Smith", "email": "alice@gmail.com", "phone": "555-0144", "jobTitle": "Account Executive", "provider": "mock"}\`)\n\treq, _ := http.NewRequest("POST", url, payload)\n\treq.Header.Add("Authorization", "Bearer YOUR_JWT_TOKEN")\n\treq.Header.Add("Content-Type", "application/json")\n\t\n\tres, _ := http.DefaultClient.Do(req)\n\tdefer res.Body.Close()\n\tbody, _ := io.ReadAll(res.Body)\n\tfmt.Println(string(body))\n}`
+                }
+              };
 
-              <div>
-                <h4 style={{ color: '#e6edf3', fontSize: '1rem', fontWeight: '700', marginBottom: '8px' }}>Envelope Security Vault</h4>
-                <p style={{ margin: 0 }}>
-                  We implement database-level symmetric envelope encryption using the AES-256-GCM cipher format. Every access and refresh token saved to the database is encrypted on write and decrypted on read transparently using a secure process context variable.
-                </p>
-              </div>
-            </div>
+              const docResponses = {
+                GET_companies: {
+                  success: true,
+                  data: [
+                    { id: "co_f902a2b", name: "Starbucks", website: "https://starbucks.com", industry: "Food Service", size: "380,000+", provider: "mock", createdAt: "2026-07-24T02:00:00Z" }
+                  ]
+                },
+                POST_companies: {
+                  success: true,
+                  message: "Company created successfully",
+                  data: { id: "co_a891f1c", name: "Acme Global", website: "https://acmeglobal.com", industry: "Technology", size: "5,000+", provider: "mock" }
+                },
+                GET_contacts: {
+                  success: true,
+                  data: [
+                    { id: "con_2a1b9f0", name: "Rahul Sharma", email: "rahul@gmail.com", phone: "555-0199", jobTitle: "Senior Developer", provider: "mock", createdAt: "2026-07-24T02:05:00Z" }
+                  ]
+                },
+                POST_contacts: {
+                  success: true,
+                  message: "Contact created successfully",
+                  data: { id: "con_77af12b", name: "Alice Smith", email: "alice@gmail.com", phone: "555-0144", jobTitle: "Account Executive", provider: "mock" }
+                }
+              };
+
+              const currentLanguageTab = fmTab === 'build' || fmTab === 'encrypt' ? 'curl' : fmTab; // Reuse fmTab or define local logic
+
+              return (
+                <div style={{ display: 'flex', background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: '12px', overflow: 'hidden', minHeight: '520px', flexWrap: 'wrap' }}>
+                  {/* Left Navigation Sidebar */}
+                  <div style={{ width: '220px', background: '#161b22', borderRight: '1px solid rgba(48,54,61,0.6)', display: 'flex', flexDirection: 'column', minWidth: '200px' }}>
+                    <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(48,54,61,0.4)' }}>
+                      <span style={{ color: '#8b949e', fontSize: '0.68rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Gateway REST API</span>
+                    </div>
+
+                    <div style={{ padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      {/* Overview */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <span style={{ color: '#8b949e', fontSize: '0.64rem', fontWeight: '700', paddingLeft: '8px', textTransform: 'uppercase' }}>Get Started</span>
+                        <button
+                          onClick={() => setSelectedDocEndpoint('overview')}
+                          style={{
+                            background: selectedDocEndpoint === 'overview' ? 'rgba(56,139,253,0.12)' : 'transparent',
+                            border: 'none', borderRadius: '6px', padding: '6px 10px', textAlign: 'left',
+                            color: selectedDocEndpoint === 'overview' ? '#58a6ff' : '#c9d1d9', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer', outline: 'none'
+                          }}
+                        >
+                          📖 Gateway Overview
+                        </button>
+                      </div>
+
+                      {/* Companies Endpoints */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <span style={{ color: '#8b949e', fontSize: '0.64rem', fontWeight: '700', paddingLeft: '8px', textTransform: 'uppercase' }}>CRM Companies</span>
+                        <button
+                          onClick={() => setSelectedDocEndpoint('GET_companies')}
+                          style={{
+                            background: selectedDocEndpoint === 'GET_companies' ? 'rgba(56,139,253,0.12)' : 'transparent',
+                            border: 'none', borderRadius: '6px', padding: '6px 10px', textAlign: 'left',
+                            color: selectedDocEndpoint === 'GET_companies' ? '#58a6ff' : '#c9d1d9', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer', outline: 'none'
+                          }}
+                        >
+                          <span style={{ color: '#3fb950', fontWeight: '700', marginRight: '6px' }}>GET</span> /companies
+                        </button>
+                        <button
+                          onClick={() => setSelectedDocEndpoint('POST_companies')}
+                          style={{
+                            background: selectedDocEndpoint === 'POST_companies' ? 'rgba(56,139,253,0.12)' : 'transparent',
+                            border: 'none', borderRadius: '6px', padding: '6px 10px', textAlign: 'left',
+                            color: selectedDocEndpoint === 'POST_companies' ? '#58a6ff' : '#c9d1d9', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer', outline: 'none'
+                          }}
+                        >
+                          <span style={{ color: '#d29922', fontWeight: '700', marginRight: '4px' }}>POST</span> /companies
+                        </button>
+                      </div>
+
+                      {/* Contacts Endpoints */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <span style={{ color: '#8b949e', fontSize: '0.64rem', fontWeight: '700', paddingLeft: '8px', textTransform: 'uppercase' }}>CRM Contacts</span>
+                        <button
+                          onClick={() => setSelectedDocEndpoint('GET_contacts')}
+                          style={{
+                            background: selectedDocEndpoint === 'GET_contacts' ? 'rgba(56,139,253,0.12)' : 'transparent',
+                            border: 'none', borderRadius: '6px', padding: '6px 10px', textAlign: 'left',
+                            color: selectedDocEndpoint === 'GET_contacts' ? '#58a6ff' : '#c9d1d9', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer', outline: 'none'
+                          }}
+                        >
+                          <span style={{ color: '#3fb950', fontWeight: '700', marginRight: '6px' }}>GET</span> /contacts
+                        </button>
+                        <button
+                          onClick={() => setSelectedDocEndpoint('POST_contacts')}
+                          style={{
+                            background: selectedDocEndpoint === 'POST_contacts' ? 'rgba(56,139,253,0.12)' : 'transparent',
+                            border: 'none', borderRadius: '6px', padding: '6px 10px', textAlign: 'left',
+                            color: selectedDocEndpoint === 'POST_contacts' ? '#58a6ff' : '#c9d1d9', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer', outline: 'none'
+                          }}
+                        >
+                          <span style={{ color: '#d29922', fontWeight: '700', marginRight: '4px' }}>POST</span> /contacts
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Details Workspace */}
+                  <div style={{ flex: 1, padding: '24px', overflowY: 'auto', maxHeight: '520px', minWidth: '320px' }}>
+                    {selectedDocEndpoint === 'overview' ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', color: '#c9d1d9', fontSize: '0.82rem', lineHeight: '1.6' }}>
+                        <div>
+                          <h3 style={{ color: '#e6edf3', fontSize: '1.2rem', fontWeight: '800', margin: '0 0 8px' }}>Universal API Gateway Overview</h3>
+                          <p style={{ margin: 0 }}>
+                            The Universal API Platform integrates with 3rd-party platforms (Hubspot, Salesforce, Pipedrive) and translates database operations transparently using standard endpoints.
+                          </p>
+                        </div>
+
+                        <div>
+                          <h4 style={{ color: '#e6edf3', fontSize: '0.9rem', fontWeight: '700', marginBottom: '8px' }}>Vault Security Envelope</h4>
+                          <p style={{ margin: 0 }}>
+                            All access keys and OAuth client parameters saved inside our PostgreSQL database use symmetric envelope encryption using the standard **AES-256-GCM** cipher block. Keys are decrypted on the fly strictly within secure memory contexts.
+                          </p>
+                        </div>
+
+                        <div>
+                          <h4 style={{ color: '#e6edf3', fontSize: '0.9rem', fontWeight: '700', marginBottom: '8px' }}>Auth Flow (Headers)</h4>
+                          <p style={{ margin: '0 0 12px' }}>
+                            All API requests must authorize using JWT tokens provided on register/login. Standard Bearer scheme must be provided:
+                          </p>
+                          <pre style={{ margin: 0, padding: '10px 14px', background: 'rgba(7,9,14,0.6)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '6px', fontFamily: 'monospace', color: '#58a6ff', fontSize: '0.78rem' }}>
+                            Authorization: Bearer YOUR_JSON_WEB_TOKEN
+                          </pre>
+                        </div>
+                      </div>
+                    ) : (
+                      // Endpoint Details
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        {/* URL Bar */}
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                            <span style={{
+                              padding: '3px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '800',
+                              background: selectedDocEndpoint.startsWith('GET') ? 'rgba(46,213,115,0.15)' : 'rgba(210,153,34,0.15)',
+                              color: selectedDocEndpoint.startsWith('GET') ? '#2ed573' : '#d29922'
+                            }}>
+                              {selectedDocEndpoint.split('_')[0]}
+                            </span>
+                            <span style={{ color: '#e6edf3', fontFamily: 'monospace', fontSize: '0.84rem', fontWeight: '600' }}>
+                              /api/v1/{selectedDocEndpoint.split('_')[1]}
+                            </span>
+                          </div>
+                          <span style={{ color: '#8b949e', fontSize: '0.8rem' }}>
+                            {selectedDocEndpoint.startsWith('GET') 
+                              ? `Retrieve a standardized list of CRM ${selectedDocEndpoint.split('_')[1]} integrated from connected channels.`
+                              : `Register a new ${selectedDocEndpoint.split('_')[1].replace(/s$/, '')} workspace record. Parameters are standardized and mapped dynamically.`
+                            }
+                          </span>
+                        </div>
+
+                        {/* Request Headers/Parameters */}
+                        <div>
+                          <h4 style={{ color: '#e6edf3', fontSize: '0.8rem', fontWeight: '700', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Query Parameters</h4>
+                          <div style={{ border: '1px solid rgba(48,54,61,0.4)', borderRadius: '8px', overflow: 'hidden' }}>
+                            <div style={{ display: 'flex', background: 'rgba(13,17,23,0.6)', padding: '8px 12px', fontSize: '0.72rem', color: '#8b949e', fontWeight: '700', borderBottom: '1px solid rgba(48,54,61,0.4)' }}>
+                              <span style={{ flex: 1 }}>Parameter</span>
+                              <span style={{ flex: 1 }}>Type</span>
+                              <span style={{ flex: 2 }}>Description</span>
+                            </div>
+                            <div style={{ display: 'flex', padding: '10px 12px', fontSize: '0.78rem', color: '#c9d1d9', borderBottom: '1px solid rgba(48,54,61,0.2)' }}>
+                              <span style={{ flex: 1, fontFamily: 'monospace', color: '#58a6ff' }}>limit</span>
+                              <span style={{ flex: 1, color: '#8b949e' }}>integer</span>
+                              <span style={{ flex: 2 }}>Max record limit fallback (Default: 50)</span>
+                            </div>
+                            <div style={{ display: 'flex', padding: '10px 12px', fontSize: '0.78rem', color: '#c9d1d9' }}>
+                              <span style={{ flex: 1, fontFamily: 'monospace', color: '#58a6ff' }}>provider</span>
+                              <span style={{ flex: 1, color: '#8b949e' }}>string</span>
+                              <span style={{ flex: 2 }}>CRM channel filter (<code>mock</code>, <code>hubspot</code>, <code>salesforce</code>)</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Code snippet generator */}
+                        <div>
+                          <h4 style={{ color: '#e6edf3', fontSize: '0.8rem', fontWeight: '700', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Request Code templates</h4>
+                          <div style={{ background: '#161b22', border: '1px solid rgba(48,54,61,0.6)', borderRadius: '8px', overflow: 'hidden' }}>
+                            {/* Copy button overlay */}
+                            <div style={{ display: 'flex', background: 'rgba(13,17,23,0.5)', borderBottom: '1px solid rgba(48,54,61,0.4)', padding: '6px 12px', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '0.72rem', color: '#8b949e', textTransform: 'uppercase', fontFamily: 'monospace' }}>Javascript Fetch</span>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(docSnippets[selectedDocEndpoint]?.javascript || '');
+                                  showToast('📋 Request snippet copied to clipboard', 'info');
+                                }}
+                                style={{ background: 'none', border: 'none', color: '#58a6ff', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '700' }}
+                              >
+                                Copy Template
+                              </button>
+                            </div>
+                            <pre style={{ margin: 0, padding: '14px', color: '#ce9178', fontSize: '0.74rem', fontFamily: 'monospace', overflowX: 'auto', lineHeight: '1.4' }}>
+                              {docSnippets[selectedDocEndpoint]?.javascript}
+                            </pre>
+                          </div>
+                        </div>
+
+                        {/* Sample response */}
+                        <div>
+                          <h4 style={{ color: '#e6edf3', fontSize: '0.8rem', fontWeight: '700', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Standard JSON Response</h4>
+                          <pre style={{
+                            margin: 0, padding: '14px', background: 'rgba(7,9,14,0.6)',
+                            border: '1px solid rgba(48,54,61,0.6)', borderRadius: '8px',
+                            color: '#7ee787', fontSize: '0.74rem', fontFamily: 'monospace', overflowX: 'auto', lineHeight: '1.4'
+                          }}>
+                            {JSON.stringify(docResponses[selectedDocEndpoint], null, 2)}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()
 
           ) : activeTab === 'logs' ? (
             // ==========================================
