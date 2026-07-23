@@ -3019,27 +3019,6 @@ export default function App() {
             // Redesigned Creative Dashboard Tab
             // ==========================================
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              {/* Header Gradient Banner */}
-              <div style={{
-                background: 'linear-gradient(135deg, rgba(31,111,235,0.06) 0%, rgba(139,92,246,0.06) 100%)',
-                border: '1px solid rgba(56,139,253,0.18)', borderRadius: '16px', padding: '24px',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.15)'
-              }}>
-                <div>
-                  <h2 style={{ margin: 0, color: '#e6edf3', fontSize: '1.3rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    🚀 Universal Control Console
-                  </h2>
-                  <p style={{ margin: '4px 0 0', color: '#8b949e', fontSize: '0.82rem' }}>
-                    Standardize fragment CRM records, authorize scopes, and supervise real-time connector logs.
-                  </p>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(7,9,14,0.4)', padding: '6px 14px', borderRadius: '20px', border: '1px solid rgba(48,54,61,0.6)' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2ed573', boxShadow: '0 0 8px #2ed573' }} />
-                  <span style={{ color: '#e6edf3', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tenant Isolation Active</span>
-                </div>
-              </div>
-
               {/* High-fidelity Stat Cards Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
                 <div style={{
@@ -3188,106 +3167,12 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* C. Interactive Connector Steps & Concepts (User Request) */}
-                  <div style={{
-                    background: 'rgba(22,27,34,0.4)', border: '1px solid rgba(48,54,61,0.6)',
-                    borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px'
-                  }}>
-                    <h4 style={{ color: '#e6edf3', margin: 0, fontSize: '0.88rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Activity size={15} color="#8b5cf6" /> CRM Connectors Setup Guides & Concepts
-                    </h4>
-                    <p style={{ margin: 0, color: '#8b949e', fontSize: '0.78rem', lineHeight: '1.4' }}>
-                      Understand integration patterns and step-by-step setups to register credential boundaries securely.
-                    </p>
-
-                    {/* Connector Tab Bar */}
-                    <div style={{ display: 'flex', borderBottom: '1px solid rgba(48,54,61,0.5)', gap: '8px', paddingBottom: '2px', marginTop: '6px' }}>
-                      {[
-                        { id: 'hubspot', label: 'HubSpot app' },
-                        { id: 'salesforce', label: 'Salesforce App' },
-                        { id: 'pipedrive', label: 'Pipedrive Settings' }
-                      ].map(t => (
-                        <button
-                          key={t.id}
-                          onClick={() => setActiveGuideTab(t.id)}
-                          style={{
-                            background: 'none', border: 'none', padding: '6px 12px',
-                            color: activeGuideTab === t.id ? '#58a6ff' : '#8b949e',
-                            borderBottom: activeGuideTab === t.id ? '2px solid #58a6ff' : 'none',
-                            fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer', outline: 'none'
-                          }}
-                        >
-                          {t.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Dynamic Setup guide instructions */}
-                    <div style={{ background: 'rgba(7,9,14,0.4)', border: '1px solid rgba(48,54,61,0.4)', borderRadius: '8px', padding: '16px' }}>
-                      {activeGuideTab === 'hubspot' && (
-                        <div>
-                          <strong style={{ color: '#ff7a00', fontSize: '0.8rem', display: 'block', marginBottom: '8px' }}>HubSpot Integration Steps:</strong>
-                          <ol style={{ margin: 0, paddingLeft: '18px', color: '#c9d1d9', fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '6px', lineHeight: '1.5' }}>
-                            <li>Log in to your <strong>HubSpot Account</strong> dashboard.</li>
-                            <li>Go to <strong>Settings &rarr; Integrations &rarr; Private Apps</strong>.</li>
-                            <li>Click <strong>Create Private App</strong> and name it <code>Universal Gateway Connector</code>.</li>
-                            <li>Navigate to <strong>Scopes</strong> and select read-level access: <code>crm.objects.contacts.read</code> and <code>crm.objects.companies.read</code>.</li>
-                            <li>Click <strong>Create App</strong> and copy the generated Access Token.</li>
-                            <li>Open the <strong>Integrations</strong> tab above, click <strong>Connect HubSpot</strong>, and paste your token!</li>
-                          </ol>
-                        </div>
-                      )}
-
-                      {activeGuideTab === 'salesforce' && (
-                        <div>
-                          <strong style={{ color: '#00a1e0', fontSize: '0.8rem', display: 'block', marginBottom: '8px' }}>Salesforce Integration Steps:</strong>
-                          <ol style={{ margin: 0, paddingLeft: '18px', color: '#c9d1d9', fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '6px', lineHeight: '1.5' }}>
-                            <li>Sign in to your <strong>Salesforce Developer</strong> environment.</li>
-                            <li>Go to <strong>Setup &rarr; App Manager</strong> and select <strong>New Connected App</strong>.</li>
-                            <li>Enable <strong>OAuth settings</strong> and specify the callback URL of the integration gateway.</li>
-                            <li>Grant OAuth scopes: <code>Access contacts</code> and <code>Manage organization configurations</code>.</li>
-                            <li>Save the app and copy your <strong>Consumer Key</strong> and <strong>Consumer Secret</strong> keys.</li>
-                            <li>Open the <strong>Integrations</strong> tab above, click <strong>Connect Salesforce</strong>, and submit your credential parameters.</li>
-                          </ol>
-                        </div>
-                      )}
-
-                      {activeGuideTab === 'pipedrive' && (
-                        <div>
-                          <strong style={{ color: '#2ed573', fontSize: '0.8rem', display: 'block', marginBottom: '8px' }}>Pipedrive Integration Steps:</strong>
-                          <ol style={{ margin: 0, paddingLeft: '18px', color: '#c9d1d9', fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '6px', lineHeight: '1.5' }}>
-                            <li>Log in to your <strong>Pipedrive Account</strong>.</li>
-                            <li>Click your profile avatar in the top-right corner and select <strong>Personal Preferences</strong>.</li>
-                            <li>Navigate to the <strong>API</strong> tab in settings.</li>
-                            <li>Copy your unique <strong>Personal API Token</strong>.</li>
-                            <li>Open the <strong>Integrations</strong> tab above, click <strong>Connect Pipedrive</strong>, and enter the copied key!</li>
-                          </ol>
-                        </div>
-                      )}
-                    </div>
-                  </div>
                 </div>
 
                 {/* RIGHT COLUMN: Scopes, Statuses & Regional Monitors */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                   
-                  {/* Scope Status Widget */}
-                  <div style={{
-                    background: 'rgba(22,27,34,0.4)', border: '1px solid rgba(48,54,61,0.6)',
-                    borderRadius: '12px', padding: '24px'
-                  }}>
-                    <h4 style={{ color: '#e6edf3', margin: '0 0 12px', fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase' }}>Workspace Status</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(7,9,14,0.3)', borderRadius: '8px', border: '1px solid rgba(48,54,61,0.3)' }}>
-                        <span style={{ color: '#c9d1d9', fontSize: '0.82rem', fontWeight: '600' }}>Tenant Data Isolation</span>
-                        <span style={{ color: '#3fb950', fontSize: '0.78rem', fontWeight: '700' }}>Strict</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(7,9,14,0.3)', borderRadius: '8px', border: '1px solid rgba(48,54,61,0.3)' }}>
-                        <span style={{ color: '#c9d1d9', fontSize: '0.82rem', fontWeight: '600' }}>Department Scoping</span>
-                        <span style={{ color: '#58a6ff', fontSize: '0.78rem', fontWeight: '700' }}>Active ({currentUser?.department})</span>
-                      </div>
-                    </div>
-                  </div>
+
 
                   {/* B. Role-specific widget outputs */}
                   {currentUser?.role === 'Regional Head' && (
