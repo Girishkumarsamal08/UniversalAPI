@@ -149,3 +149,18 @@ export const createContact = async (req: Request, res: Response): Promise<void> 
     sendError(res, error instanceof Error ? error.message : 'Failed to create contact');
   }
 };
+
+export const deleteContact = async (req: Request, res: Response): Promise<void> => {
+  if (!req.user?.organizationId) {
+    sendUnauthorized(res);
+    return;
+  }
+
+  try {
+    await ContactsService.deleteContact(req.params.id, req.user.organizationId);
+    sendSuccess(res, { id: req.params.id }, 'Contact deleted successfully');
+  } catch (error) {
+    logger.error('DeleteContact error:', error);
+    sendError(res, 'Failed to delete contact');
+  }
+};

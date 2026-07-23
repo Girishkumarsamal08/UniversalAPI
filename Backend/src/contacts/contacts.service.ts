@@ -14,7 +14,7 @@ export const getContacts = async (
   const { page, limit, provider, search } = query;
 
   // Always use mock adapter if provider=mock OR if org is the dev mock org
-  const useMock = provider === 'mock' || !provider || provider === 'all' || organizationId === 'dev-mock-org-001';
+  const useMock = provider === 'mock' || organizationId === 'dev-mock-org-001';
   if (useMock) {
     const adapter = await getProviderAdapter('mock', userId);
     const contacts = await adapter.getContacts({ page, limit, search });
@@ -146,4 +146,13 @@ export const createContact = async (
     updatedAt: saved.updatedAt.toISOString(),
     _raw_passthrough: saved.rawData ?? undefined,
   };
+};
+
+export const deleteContact = async (
+  id: string,
+  organizationId: string
+): Promise<void> => {
+  await prisma.contact.deleteMany({
+    where: { id, organizationId },
+  });
 };

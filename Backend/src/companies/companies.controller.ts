@@ -147,3 +147,18 @@ export const createCompany = async (req: Request, res: Response): Promise<void> 
     sendError(res, error instanceof Error ? error.message : 'Failed to create company');
   }
 };
+
+export const deleteCompany = async (req: Request, res: Response): Promise<void> => {
+  if (!req.user?.organizationId) {
+    sendUnauthorized(res);
+    return;
+  }
+
+  try {
+    await CompaniesService.deleteCompany(req.params.id, req.user.organizationId);
+    sendSuccess(res, { id: req.params.id }, 'Company deleted successfully');
+  } catch (error) {
+    logger.error('DeleteCompany error:', error);
+    sendError(res, 'Failed to delete company');
+  }
+};

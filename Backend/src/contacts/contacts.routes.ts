@@ -1,7 +1,7 @@
 // Contacts Router
 
 import { Router } from 'express';
-import { getContacts, getContactById, createContact } from './contacts.controller';
+import { getContacts, getContactById, createContact, deleteContact } from './contacts.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { readLimiter } from '../middleware/rateLimit.middleware';
 
@@ -13,5 +13,6 @@ router.use(authMiddleware);
 router.get('/', readLimiter, getContacts);
 router.get('/:id', readLimiter, getContactById);
 router.post('/', createContact);
+router.delete('/:id', deleteContact);
 
 export default router;

@@ -14,7 +14,7 @@ export const getCompanies = async (
   const { page, limit, provider, search } = query;
 
   // Always use mock adapter if provider=mock OR if org is the dev mock org
-  const useMock = provider === 'mock' || !provider || provider === 'all' || organizationId === 'dev-mock-org-001';
+  const useMock = provider === 'mock' || organizationId === 'dev-mock-org-001';
   if (useMock) {
     const adapter = await getProviderAdapter('mock', userId);
     const companies = await adapter.getCompanies({ page, limit, search });
@@ -143,4 +143,13 @@ export const createCompany = async (
     updatedAt: saved.updatedAt.toISOString(),
     _raw_passthrough: saved.rawData ?? undefined,
   };
+};
+
+export const deleteCompany = async (
+  id: string,
+  organizationId: string
+): Promise<void> => {
+  await prisma.company.deleteMany({
+    where: { id, organizationId },
+  });
 };

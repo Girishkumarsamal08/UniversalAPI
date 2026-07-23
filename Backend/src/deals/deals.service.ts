@@ -13,7 +13,7 @@ export const getDeals = async (
   const { page, limit, provider, search } = query;
 
   // Check if mock mode is triggered
-  const useMock = provider === 'mock' || !provider || provider === 'all' || organizationId === 'dev-mock-org-001';
+  const useMock = provider === 'mock' || organizationId === 'dev-mock-org-001';
   if (useMock) {
     const adapter = await getProviderAdapter('mock', userId);
     const deals = await adapter.getDeals({ page, limit, search });
