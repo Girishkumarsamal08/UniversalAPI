@@ -861,6 +861,342 @@ function CtoErpConsoleView({ currentUser, showToast }) {
   );
 }
 
+// 3D Glassmorphism Calling Slider CTA
+function SliderCTA({ setShowAuth, setRegistering }) {
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  
+  const maxDrag = 140; // Increased displacement for wider track
+  const triggerThreshold = 125; // Threshold to activate
+
+  const handleStart = (clientX) => {
+    setIsDragging(true);
+    setStartX(clientX - dragX);
+  };
+
+  const handleMove = (clientX) => {
+    if (!isDragging) return;
+    let deltaX = clientX - startX;
+    if (deltaX > maxDrag) deltaX = maxDrag;
+    if (deltaX < -maxDrag) deltaX = -maxDrag;
+    setDragX(deltaX);
+  };
+
+  const handleEnd = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    if (dragX >= triggerThreshold) {
+      setShowAuth(true);
+      setRegistering(false);
+    } else if (dragX <= -triggerThreshold) {
+      setShowAuth(true);
+      setRegistering(true);
+    }
+    setDragX(0); // Snap back
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const onMouseMove = (e) => handleMove(e.clientX);
+    const onMouseUp = () => handleEnd();
+    const onTouchMove = (e) => {
+      if (e.touches.length > 0) handleMove(e.touches[0].clientX);
+    };
+    const onTouchEnd = () => handleEnd();
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('touchmove', onTouchMove);
+    window.addEventListener('touchend', onTouchEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [isDragging, startX, dragX]);
+
+  const percent = Math.min(100, (Math.abs(dragX) / maxDrag) * 100);
+  
+  // Dynamic styling variables
+  let leftOverlayBg = 'transparent';
+  let rightOverlayBg = 'transparent';
+  let borderGlow = 'rgba(255, 255, 255, 0.06)';
+  let centerGlowColor = '#ffffff';
+
+  if (dragX > 0) {
+    rightOverlayBg = `linear-gradient(to left, rgba(31, 111, 235, ${0.1 + (percent / 100) * 0.3}), transparent)`;
+    borderGlow = `rgba(31, 111, 235, ${0.06 + (percent / 100) * 0.4})`;
+    centerGlowColor = '#58a6ff';
+  } else if (dragX < 0) {
+    leftOverlayBg = `linear-gradient(to right, rgba(139, 92, 246, ${0.1 + (percent / 100) * 0.3}), transparent)`;
+    borderGlow = `rgba(139, 92, 246, ${0.06 + (percent / 100) * 0.4})`;
+    centerGlowColor = '#a78bfa';
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+      {/* CSS Keyframes injected inline */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes calling-wave {
+          0% { transform: scale(0.85); opacity: 0.5; }
+          50% { opacity: 0.8; }
+          100% { transform: scale(1.6); opacity: 0; }
+        }
+        @keyframes subtle-shimmer {
+          0% { background-position: -200px 0; }
+          100% { background-position: 200px 0; }
+        }
+        @keyframes handle-pulse {
+          0% { box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 0 0 0 rgba(255, 255, 255, 0.15), inset 0 2px 4px rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.4); }
+          70% { box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 0 0 10px rgba(255, 255, 255, 0), inset 0 2px 4px rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.4); }
+          100% { box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 0 0 0 rgba(255, 255, 255, 0), inset 0 2px 4px rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.4); }
+        }
+        @keyframes chevron-left-pulse {
+          0%, 100% { transform: translateX(0); opacity: 0.6; }
+          50% { transform: translateX(-4px); opacity: 1; }
+        }
+        @keyframes chevron-right-pulse {
+          0%, 100% { transform: translateX(0); opacity: 0.6; }
+          50% { transform: translateX(4px); opacity: 1; }
+        }
+        .shimmer-text-header {
+          background: linear-gradient(90deg, #8b949e 0%, #ffffff 50%, #8b949e 100%);
+          background-size: 200px 100%;
+          animation: subtle-shimmer 3s infinite linear;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+      `}} />
+
+      {/* Slide to Authenticate header */}
+      <span className="shimmer-text-header" style={{ fontSize: '0.74rem', fontWeight: '800', letterSpacing: '0.18rem', textTransform: 'uppercase' }}>
+        Slide to Authenticate
+      </span>
+
+      {/* Main Track */}
+      <div 
+        style={{
+          position: 'relative',
+          width: '380px',
+          height: '66px',
+          background: 'rgba(7, 10, 15, 0.65)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: `1px solid ${borderGlow}`,
+          borderRadius: '33px',
+          boxShadow: 'inset 0 0 16px rgba(0, 0, 0, 0.8), 0 12px 36px rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0',
+          userSelect: 'none',
+          boxSizing: 'border-box',
+          overflow: 'hidden',
+          transition: 'border-color 0.2s'
+        }}
+      >
+        {/* Left Side Glow Overlay */}
+        <div style={{
+          position: 'absolute',
+          top: 0, left: 0, bottom: 0,
+          width: '50%',
+          background: leftOverlayBg,
+          transition: 'background 0.2s',
+          pointerEvents: 'none'
+        }} />
+
+        {/* Right Side Glow Overlay */}
+        <div style={{
+          position: 'absolute',
+          top: 0, right: 0, bottom: 0,
+          width: '50%',
+          background: rightOverlayBg,
+          transition: 'background 0.2s',
+          pointerEvents: 'none'
+        }} />
+
+        {/* Left End Zone (Register) */}
+        <div style={{ 
+          position: 'absolute', 
+          left: '24px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          opacity: dragX < 0 ? 1 : 0.4 + (dragX > 0 ? -percent/100 : 0),
+          transform: dragX < 0 ? `scale(${1 + percent/400})` : 'scale(1)',
+          transition: 'opacity 0.2s, transform 0.2s',
+          pointerEvents: 'none',
+          zIndex: 2
+        }}>
+          {dragX === 0 && (
+            <div style={{
+              position: 'absolute', width: '32px', height: '32px', borderRadius: '50%',
+              background: 'rgba(139,92,246,0.15)', animation: 'calling-wave 2s infinite', left: '-8px'
+            }} />
+          )}
+          {/* User Plus SVG Icon */}
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: dragX < 0 ? 'drop-shadow(0 0 5px rgba(139,92,246,0.8))' : 'none' }}>
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="8.5" cy="7" r="4"></circle>
+            <line x1="20" y1="8" x2="20" y2="14"></line>
+            <line x1="17" y1="11" x2="23" y2="11"></line>
+          </svg>
+          <span style={{ 
+            color: '#a78bfa', fontSize: '0.8rem', fontWeight: '800', 
+            letterSpacing: '0.06em', textTransform: 'uppercase', textShadow: dragX < 0 ? '0 0 10px rgba(139,92,246,0.8)' : 'none'
+          }}>
+            Register
+          </span>
+        </div>
+
+        {/* Right End Zone (Login) */}
+        <div style={{ 
+          position: 'absolute', 
+          right: '24px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          opacity: dragX > 0 ? 1 : 0.4 + (dragX < 0 ? -percent/100 : 0),
+          transform: dragX > 0 ? `scale(${1 + percent/400})` : 'scale(1)',
+          transition: 'opacity 0.2s, transform 0.2s',
+          pointerEvents: 'none',
+          zIndex: 2
+        }}>
+          {dragX === 0 && (
+            <div style={{
+              position: 'absolute', width: '32px', height: '32px', borderRadius: '50%',
+              background: 'rgba(31,111,235,0.15)', animation: 'calling-wave 2s infinite', right: '-8px'
+            }} />
+          )}
+          <span style={{ 
+            color: '#58a6ff', fontSize: '0.8rem', fontWeight: '800', 
+            letterSpacing: '0.06em', textTransform: 'uppercase', textShadow: dragX > 0 ? '0 0 10px rgba(31,111,235,0.8)' : 'none'
+          }}>
+            Login
+          </span>
+          {/* Key SVG Icon */}
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: dragX > 0 ? 'drop-shadow(0 0 5px rgba(31,111,235,0.8))' : 'none' }}>
+            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+          </svg>
+        </div>
+
+        {/* 3D Glass Handle / Puck */}
+        <div
+          onMouseDown={(e) => handleStart(e.clientX)}
+          onTouchStart={(e) => {
+            if (e.touches.length > 0) handleStart(e.touches[0].clientX);
+          }}
+          style={{
+            position: 'absolute',
+            left: `calc(50% - 27px + ${dragX}px)`,
+            width: '54px',
+            height: '54px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.06) 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.45)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            cursor: isDragging ? 'grabbing' : 'grab',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 5,
+            transition: isDragging ? 'none' : 'left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
+            animation: !isDragging ? 'handle-pulse 2s infinite' : 'none',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.4)'
+          }}
+        >
+          {/* Inner Glowing Core Container */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '2px',
+            color: '#e6edf3'
+          }}>
+            {/* Left Chevron SVG (pulses left when idle) */}
+            <svg 
+              width="11" 
+              height="11" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke={dragX < 0 ? '#a78bfa' : '#ffffff'} 
+              strokeWidth="3" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+              style={{
+                animation: !isDragging ? 'chevron-left-pulse 1.5s infinite ease-in-out' : 'none',
+                opacity: dragX > 0 ? 0.2 : 0.8,
+                transition: 'stroke 0.2s, opacity 0.2s'
+              }}
+            >
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+
+            {/* Glowing Core Sphere */}
+            <div style={{
+              width: '18px',
+              height: '18px',
+              borderRadius: '50%',
+              background: dragX > 0 
+                ? 'radial-gradient(circle, #58a6ff 0%, #1f6feb 100%)'
+                : dragX < 0 
+                  ? 'radial-gradient(circle, #c084fc 0%, #8b5cf6 100%)'
+                  : 'radial-gradient(circle, #ffffff 0%, #8b949e 100%)',
+              boxShadow: dragX > 0 
+                ? '0 0 12px rgba(88,166,255,0.9)' 
+                : dragX < 0 
+                  ? '0 0 12px rgba(192,132,252,0.9)' 
+                  : '0 0 8px rgba(255,255,255,0.4)',
+              transition: 'background 0.2s, box-shadow 0.2s'
+            }} />
+
+            {/* Right Chevron SVG (pulses right when idle) */}
+            <svg 
+              width="11" 
+              height="11" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke={dragX > 0 ? '#58a6ff' : '#ffffff'} 
+              strokeWidth="3" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+              style={{
+                animation: !isDragging ? 'chevron-right-pulse 1.5s infinite ease-in-out' : 'none',
+                opacity: dragX < 0 ? 0.2 : 0.8,
+                transition: 'stroke 0.2s, opacity 0.2s'
+              }}
+            >
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </div>
+          
+          {/* Top highlight shine overlay */}
+          <div style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.45) 0%, transparent 60%)',
+            pointerEvents: 'none'
+          }} />
+        </div>
+      </div>
+      
+      {/* Slider instructions */}
+      <span style={{ fontSize: '0.66rem', color: '#8b949e', opacity: 0.7, letterSpacing: '0.04em' }}>
+        {isDragging 
+          ? (dragX > 0 ? 'Release to Login' : 'Release to Register') 
+          : 'Hold and slide the puck left or right'}
+      </span>
+    </div>
+  );
+}
+
 export default function App() {
   const [contacts, setContacts] = useState([]);
   const [showAuth, setShowAuth] = useState(false);
@@ -1916,24 +2252,18 @@ export default function App() {
               Standardize, map, and query customer contacts, companies, and deals from HubSpot, Salesforce, and Pipedrive through a single robust, compliant API.
             </p>
 
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '70px' }}>
-              <button onClick={() => setShowAuth(true)} style={{
-                background: 'linear-gradient(135deg, #1f6feb 0%, #8b5cf6 100%)',
-                color: 'white', border: 'none', padding: '16px 32px', borderRadius: '10px',
-                fontSize: '0.98rem', fontWeight: '800', cursor: 'pointer',
-                boxShadow: '0 8px 30px rgba(31,111,235,0.4)', display: 'flex', alignItems: 'center', gap: '10px',
-                transition: 'all 0.2s'
-              }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 35px rgba(139,92,246,0.5)'; }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(31,111,235,0.4)'; }}>
-                Access Console <ArrowRight size={18} />
-              </button>
-              <a href="#simulator" style={{
-                background: 'rgba(33,38,45,0.4)', color: '#c9d1d9', border: '1px solid rgba(48,54,61,0.8)',
-                padding: '16px 32px', borderRadius: '10px', fontSize: '0.98rem', fontWeight: '800',
-                cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px',
-                transition: 'all 0.2s', backdropFilter: 'blur(8px)'
-              }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(33,38,45,0.7)'; e.currentTarget.style.borderColor = '#8b949e'; e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(33,38,45,0.4)'; e.currentTarget.style.borderColor = 'rgba(48,54,61,0.8)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
-                Try Normalizer Demo
-              </a>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px', marginBottom: '70px' }}>
+              <SliderCTA setShowAuth={setShowAuth} setRegistering={setRegistering} />
+              <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                <a href="#simulator" style={{
+                  background: 'rgba(33,38,45,0.4)', color: '#c9d1d9', border: '1px solid rgba(48,54,61,0.8)',
+                  padding: '12px 28px', borderRadius: '8px', fontSize: '0.88rem', fontWeight: '800',
+                  cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px',
+                  transition: 'all 0.2s', backdropFilter: 'blur(8px)'
+                }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(33,38,45,0.7)'; e.currentTarget.style.borderColor = '#8b949e'; e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(33,38,45,0.4)'; e.currentTarget.style.borderColor = 'rgba(48,54,61,0.8)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+                  Try Normalizer Demo
+                </a>
+              </div>
             </div>
 
             {/* Dynamic Counter Stats Row */}
@@ -2026,33 +2356,70 @@ export default function App() {
 
               {/* Executive Leadership & Company Head Value proposition */}
               <div style={{ marginTop: '48px', background: 'linear-gradient(135deg, rgba(31,111,235,0.06), rgba(139,92,246,0.06))', border: '1px solid rgba(56,139,253,0.25)', borderRadius: '16px', padding: '32px', textAlign: 'left' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <style dangerouslySetInnerHTML={{ __html: `
+                  .feature-glass-card {
+                    background: rgba(13, 20, 35, 0.45);
+                    backdrop-filter: blur(12px);
+                    -webkit-backdrop-filter: blur(12px);
+                    border: 1px solid rgba(48, 54, 61, 0.5);
+                    border-radius: 12px;
+                    padding: 24px;
+                    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+                    cursor: default;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                  }
+                  .feature-glass-card:hover {
+                    transform: translateY(-3px);
+                    border-color: rgba(56, 139, 253, 0.45);
+                    background: rgba(20, 30, 50, 0.6);
+                    box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 0 15px rgba(56, 139, 253, 0.15);
+                  }
+                `}} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
                   <span style={{ background: 'rgba(56,139,253,0.15)', color: '#58a6ff', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.08em' }}>👑 Executive Leadership Guide</span>
                   <h3 style={{ margin: 0, color: '#e6edf3', fontSize: '1.25rem', fontWeight: '800' }}>Platform Facilities &amp; Business Benefits for Company Heads</h3>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-                  <div style={{ background: 'rgba(7,9,14,0.6)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '12px', padding: '20px' }}>
-                    <h4 style={{ margin: '0 0 8px', color: '#58a6ff', fontSize: '0.92rem', fontWeight: '700' }}>📊 Unified Cross-Platform Visibility</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: '20px' }}>
+                  {/* Feature 1 */}
+                  <div className="feature-glass-card">
+                    <h4 style={{ margin: '0 0 8px', color: '#58a6ff', fontSize: '0.92rem', fontWeight: '800' }}>📊 Unified CRM Visibility</h4>
                     <p style={{ margin: 0, color: '#8b949e', fontSize: '0.82rem', lineHeight: '1.5' }}>
-                      Eliminate data silos across HubSpot, Salesforce, Pipedrive, and Zoho. Company heads view unified revenue deals, customer contacts, and operational metrics in a single pane of glass.
+                      Aggregates pipeline deals, client contacts, and engagement histories from HubSpot, Salesforce, Pipedrive, and Zoho into a single centralized dashboard.
                     </p>
                   </div>
-                  <div style={{ background: 'rgba(7,9,14,0.6)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '12px', padding: '20px' }}>
-                    <h4 style={{ margin: '0 0 8px', color: '#a78bfa', fontSize: '0.92rem', fontWeight: '700' }}>🛡️ Zero-Trust Enterprise Security</h4>
+                  {/* Feature 2 */}
+                  <div className="feature-glass-card">
+                    <h4 style={{ margin: '0 0 8px', color: '#a78bfa', fontSize: '0.92rem', fontWeight: '800' }}>🛡️ Zero-Trust Security</h4>
                     <p style={{ margin: 0, color: '#8b949e', fontSize: '0.82rem', lineHeight: '1.5' }}>
-                      All platform credentials and OAuth secrets are locked in AES-256 encrypted vaults. Multi-tenant RBAC boundaries prevent unauthorized cross-platform data leaks.
+                      Enforces strict RBAC role scopes and locks user credentials/OAuth client secrets in an AES-256-GCM encrypted database vault.
                     </p>
                   </div>
-                  <div style={{ background: 'rgba(7,9,14,0.6)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '12px', padding: '20px' }}>
-                    <h4 style={{ margin: '0 0 8px', color: '#2ed573', fontSize: '0.92rem', fontWeight: '700' }}>📈 CTO Dynamic ERP Performance Tracker</h4>
+                  {/* Feature 3 */}
+                  <div className="feature-glass-card">
+                    <h4 style={{ margin: '0 0 8px', color: '#2ed573', fontSize: '0.92rem', fontWeight: '800' }}>📈 CTO Performance Monitor</h4>
                     <p style={{ margin: 0, color: '#8b949e', fontSize: '0.82rem', lineHeight: '1.5' }}>
-                      Monitor engineering sprint progress, developer team output, client milestone approvals, and connector node costs in real-time.
+                      Track engineering sprint progress, developer team velocity logs, client milestone deliverables, and cloud connector resource costs in real-time.
                     </p>
                   </div>
-                  <div style={{ background: 'rgba(7,9,14,0.6)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '12px', padding: '20px' }}>
-                    <h4 style={{ margin: '0 0 8px', color: '#ff8c42', fontSize: '0.92rem', fontWeight: '700' }}>💰 Reduced Integration Overhead</h4>
+                  {/* Feature 4 */}
+                  <div className="feature-glass-card">
+                    <h4 style={{ margin: '0 0 8px', color: '#ff8c42', fontSize: '0.92rem', fontWeight: '800' }}>💰 Reduced Developer Overhead</h4>
                     <p style={{ margin: 0, color: '#8b949e', fontSize: '0.82rem', lineHeight: '1.5' }}>
-                      Save hundreds of engineering hours by replacing custom 3rd-party API code with Universal API’s zero-maintenance single integration endpoint.
+                      Replaces custom 3rd-party webhook microservices and endpoint adapters with a unified, zero-maintenance API integration gateway.
+                    </p>
+                  </div>
+                  {/* Feature 5 */}
+                  <div className="feature-glass-card">
+                    <h4 style={{ margin: '0 0 8px', color: '#ff5252', fontSize: '0.92rem', fontWeight: '800' }}>🤖 AI Document Parser</h4>
+                    <p style={{ margin: 0, color: '#8b949e', fontSize: '0.82rem', lineHeight: '1.5' }}>
+                      Automatically parses unstructured PDF files and extracts companies, deals, and roles into normalized CRM models using intelligent layout parsing.
+                    </p>
+                  </div>
+                  {/* Feature 6 */}
+                  <div className="feature-glass-card">
+                    <h4 style={{ margin: '0 0 8px', color: '#00d2d3', fontSize: '0.92rem', fontWeight: '800' }}>⚡ Edge Diagnostics &amp; Logs</h4>
+                    <p style={{ margin: 0, color: '#8b949e', fontSize: '0.82rem', lineHeight: '1.5' }}>
+                      Monitor API request latency, gateway serialization delay, and network connection status with real-time diagnostics and logging.
                     </p>
                   </div>
                 </div>
