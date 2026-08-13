@@ -1,9 +1,16 @@
 // Integration Controller — Maps HTTP requests to IntegrationService logic
+// Enhanced with status endpoint, metadata endpoint, retainData support, and structured errors
+
 import { Request as ExpressRequest, Response as ExpressResponse } from 'express';
 import * as IntegrationService from './integration.service';
 import { sendSuccess, sendError, sendBadRequest, sendUnauthorized } from '../../utils/response.helper';
 import { logger } from '../../utils/logger';
 import prisma from '../../database/prisma.client';
+import { getProviderMeta } from './provider-metadata';
+
+// ────────────────────────────────────────────────────────────────
+// GET /integrations — List all integrations for the user
+// ────────────────────────────────────────────────────────────────
 
 export const getIntegrations = async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
   try {
@@ -21,12 +28,82 @@ export const getIntegrations = async (req: ExpressRequest, res: ExpressResponse)
   }
 };
 
+// ────────────────────────────────────────────────────────────────
+// GET /integrations/metadata — Public provider catalog
+// ────────────────────────────────────────────────────────────────
+
+export const getProviderMetadata = async (_req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  try {
+    const metadata = IntegrationService.getProviderMetadataList();
+    sendSuccess(res, metadata, 'Provider metadata retrieved');
+  } catch (err: any) {
+    logger.error('Failed to get provider metadata:', err);
+    sendError(res, 'Failed to fetch provider metadata');
+  }
+};
+
+// ────────────────────────────────────────────────────────────────
+// GET /integrations/:provider/status — Enriched status for a single provider
+// ────────────────────────────────────────────────────────────────
+
+export const getStatus = async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  try {
+    const { provider } = req.params;
+    const userId = req.user?.id;
+    if (!userId) {
+      sendUnauthorized(res);
+      return;
+    }
+
+    const meta = getProviderMeta(provider);
+    if (!meta) {
+      sendBadRequest(res, `Unknown provider: ${provider}`);
+      return;
+    }
+
+    const integrations = await IntegrationService.getIntegrationsForUser(userId, req.user?.organizationId);
+    const integration = integrations.find(i => i.provider === provider.toLowerCase());
+
+    if (!integration) {
+      sendSuccess(res, {
+        provider,
+        status: 'Not Connected',
+        comingSoon: meta.comingSoon,
+        displayName: meta.displayName,
+        category: meta.category,
+        capabilities: meta.capabilities,
+      }, 'Provider status retrieved');
+      return;
+    }
+
+    sendSuccess(res, integration, 'Provider status retrieved');
+  } catch (err: any) {
+    logger.error(`Failed to get status for ${req.params.provider}:`, err);
+    sendError(res, 'Failed to fetch provider status');
+  }
+};
+
+// ────────────────────────────────────────────────────────────────
+// POST /integrations/:provider/connect — Start OAuth or submit credentials
+// ────────────────────────────────────────────────────────────────
+
 export const connect = async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
   try {
     const { provider } = req.params;
     const userId = req.user?.id;
     if (!userId) {
       sendUnauthorized(res);
+      return;
+    }
+
+    // Check if provider exists and is not coming-soon
+    const meta = getProviderMeta(provider);
+    if (!meta) {
+      sendBadRequest(res, `Unknown provider: ${provider}`);
+      return;
+    }
+    if (meta.comingSoon) {
+      sendBadRequest(res, `${meta.displayName} integration is coming soon and not yet available for connection.`);
       return;
     }
 
@@ -61,7 +138,7 @@ export const connect = async (req: ExpressRequest, res: ExpressResponse): Promis
       }
 
       await IntegrationService.logIntegrationEvent(userId, `${p.toUpperCase()} Credentials Submitted (${accountLabel})`);
-      sendSuccess(res, { status: 'Connected', provider: p, connectedAccount: accountLabel }, `${provider} connected successfully with platform User ID & API Credentials.`);
+      sendSuccess(res, { status: 'Connected', provider: p, connectedAccount: accountLabel }, `${meta.displayName} connected successfully with platform User ID & API Credentials.`);
       return;
     }
 
@@ -89,6 +166,10 @@ export const connect = async (req: ExpressRequest, res: ExpressResponse): Promis
   }
 };
 
+// ────────────────────────────────────────────────────────────────
+// GET /integrations/:provider/callback — OAuth callback handler
+// ────────────────────────────────────────────────────────────────
+
 export const callback = async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
   const { provider } = req.params;
   const code = req.query.code as string;
@@ -103,13 +184,15 @@ export const callback = async (req: ExpressRequest, res: ExpressResponse): Promi
     await IntegrationService.exchangeCodeForToken(provider, code, userId);
     
     // Return standard popup closure postMessage page
+    const meta = getProviderMeta(provider);
+    const displayName = meta?.displayName || provider;
     const html = `
       <!DOCTYPE html>
       <html>
       <head><title>Connection Successful</title></head>
       <body style="background:#0d1117; color:#c9d1d9; font-family:sans-serif; text-align:center; padding:48px;">
         <h2 style="color:#58a6ff;">Connection Successful!</h2>
-        <p>Connecting to ${provider}... You may close this window.</p>
+        <p>Connected to ${displayName}. You may close this window.</p>
         <script>
           if (window.opener) {
             window.opener.postMessage({ type: 'OAUTH_SUCCESS', provider: '${provider}' }, '*');
@@ -125,6 +208,10 @@ export const callback = async (req: ExpressRequest, res: ExpressResponse): Promi
     res.status(500).send(`<h1>OAuth Authorization Failed</h1><p>${err.message}</p>`);
   }
 };
+
+// ────────────────────────────────────────────────────────────────
+// POST /integrations/:provider/disconnect — Disconnect with retainData option
+// ────────────────────────────────────────────────────────────────
 
 export const disconnect = async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
   try {
@@ -151,13 +238,25 @@ export const disconnect = async (req: ExpressRequest, res: ExpressResponse): Pro
       return;
     }
 
-    await IntegrationService.revokeConnection(provider, userId);
-    sendSuccess(res, null, `${provider} disconnected successfully`);
+    // Extract retainData option from request body
+    const retainData = req.body?.retainData === true;
+
+    await IntegrationService.revokeConnection(provider, userId, { retainData });
+    const meta = getProviderMeta(provider);
+    const displayName = meta?.displayName || provider;
+    const message = retainData
+      ? `${displayName} disconnected. Synced data has been retained.`
+      : `${displayName} disconnected and synced data purged.`;
+    sendSuccess(res, null, message);
   } catch (err: any) {
     logger.error(`Failed to disconnect ${req.params.provider}:`, err);
     sendError(res, 'Failed to disconnect');
   }
 };
+
+// ────────────────────────────────────────────────────────────────
+// POST /integrations/:provider/sync — Trigger data sync
+// ────────────────────────────────────────────────────────────────
 
 export const sync = async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
   try {
@@ -185,15 +284,41 @@ export const sync = async (req: ExpressRequest, res: ExpressResponse): Promise<v
     sendSuccess(res, syncResult, 'Sync completed successfully');
   } catch (err: any) {
     logger.error(`Sync failed for ${req.params.provider}:`, err);
-    sendError(res, `Sync failed: ${err.message}`);
+
+    // Differentiate error types for the frontend
+    if (err.message?.includes('not connected')) {
+      sendBadRequest(res, `PROVIDER_NOT_CONNECTED: ${err.message}`);
+    } else if (err.message?.includes('Token') || err.message?.includes('401')) {
+      sendError(res, `TOKEN_EXPIRED: ${err.message}`);
+    } else {
+      sendError(res, `Sync failed: ${err.message}`);
+    }
   }
 };
+
+// ────────────────────────────────────────────────────────────────
+// GET /integrations/:provider/oauth-simulate — Simulated OAuth consent page
+// ────────────────────────────────────────────────────────────────
 
 export const oauthSimulatePage = (req: ExpressRequest, res: ExpressResponse): void => {
   const { provider } = req.params;
   const userId = (req.query.userId as string) || 'dev-mock-user-001';
-  const displayName = provider.charAt(0).toUpperCase() + provider.slice(1);
-  const color = provider === 'hubspot' ? '#ff7a00' : provider === 'salesforce' ? '#00a1e0' : provider === 'pipedrive' ? '#26b860' : '#8b5cf6';
+  const meta = getProviderMeta(provider);
+  const displayName = meta?.displayName || provider.charAt(0).toUpperCase() + provider.slice(1);
+  
+  // Provider-specific brand colors
+  const brandColors: Record<string, string> = {
+    hubspot: '#ff7a00', salesforce: '#00a1e0', pipedrive: '#26b860',
+    zoho: '#d14836', gmail: '#ea4335', google_calendar: '#4285f4',
+    outlook_mail: '#0078d4', outlook_calendar: '#0078d4', shopify: '#95bf47',
+    slack: '#4a154b', stripe: '#635bff', razorpay: '#2d8cff',
+    paypal: '#003087', zapier: '#ff4a00',
+  };
+  const color = brandColors[provider] || '#8b5cf6';
+
+  // Provider-specific scopes for the consent screen
+  const scopes = meta?.scopes?.length ? meta.scopes : ['Read & Write Contacts', 'Read & Write Companies', 'Read Opportunities / Deals'];
+  const scopeItems = scopes.map(s => `<div class="permission-item"><span class="check">✓</span> ${s}</div>`).join('\n');
 
   const html = `
     <!DOCTYPE html>
@@ -330,9 +455,7 @@ export const oauthSimulatePage = (req: ExpressRequest, res: ExpressResponse): vo
         
         <div class="permissions-list">
           <div class="permissions-title">Requested Scopes:</div>
-          <div class="permission-item"><span class="check">✓</span> Read &amp; Write Contacts</div>
-          <div class="permission-item"><span class="check">✓</span> Read &amp; Write Companies</div>
-          <div class="permission-item"><span class="check">✓</span> Read Opportunities / Deals</div>
+          ${scopeItems}
           <div class="permission-item"><span class="check">✓</span> Offline access (Refresh Token)</div>
         </div>
 

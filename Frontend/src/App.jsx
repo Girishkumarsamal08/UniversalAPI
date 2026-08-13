@@ -1329,6 +1329,7 @@ export default function App() {
 
   // Marketplace filter state
   const [marketFilter, setMarketFilter] = useState('all');
+  const [disconnectRetainData, setDisconnectRetainData] = useState(false);
 
   const [roleTabConfigs, setRoleTabConfigs] = useState(() => {
     const saved = localStorage.getItem('unified_role_configs');
@@ -2056,6 +2057,7 @@ export default function App() {
   };
 
   const confirmDisconnect = (provider) => {
+    setDisconnectRetainData(false);
     setShowConfirmModal(provider);
   };
 
@@ -2063,12 +2065,14 @@ export default function App() {
     const provider = showConfirmModal;
     setShowConfirmModal(null);
     try {
-      const res = await api.post(`/integrations/${provider}/disconnect`);
+      const res = await api.post(`/integrations/${provider}/disconnect`, { retainData: disconnectRetainData });
       if (res.data.data?.status === 'PENDING_APPROVAL') {
         showToast('Disconnect request submitted for administrator approval.', 'info');
       } else {
-        showToast(`${provider.toUpperCase()} connection revoked.`);
+        const action = disconnectRetainData ? 'disconnected (data retained)' : 'disconnected & data purged';
+        showToast(`${provider.charAt(0).toUpperCase() + provider.slice(1)} ${action}.`);
       }
+      setDisconnectRetainData(false);
       fetchData();
     } catch (err) {
       showToast(`Failed to disconnect: ${err.response?.data?.message || err.message}`, 'error');
@@ -2428,8 +2432,8 @@ export default function App() {
           </section>
 
           {/* Normalization Live Interactive Simulator */}
-          <section id="simulator" style={{ maxWidth: '1100px', margin: '80px auto 0', padding: '0 40px', position: 'relative', zIndex: 2 }}>
-            <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <section id="simulator" style={{ maxWidth: '1100px', margin: '32px auto 0', padding: '0 40px', position: 'relative', zIndex: 2 }}>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '2rem', fontWeight: '800', color: '#e6edf3', margin: '0 0 12px', letterSpacing: '-0.01em' }}>Interactive Normalizer Sandbox</h2>
               <p style={{ color: '#8b949e', fontSize: '0.95rem', maxWidth: '650px', margin: '0 auto', lineHeight: '1.5' }}>
                 Type or edit custom payloads in the raw editor panel on the left to see our dynamic schema mapper normalize CRM data instantly.
@@ -3973,6 +3977,7 @@ export default function App() {
             // INTEGRATION MARKETPLACE
             // ==========================================
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Category Filter Tabs */}
               <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid rgba(48,54,61,0.3)', paddingBottom: '10px', overflowX: 'auto' }}>
                 {[
                   { id: 'all', label: 'All Verticals' },
@@ -3982,6 +3987,7 @@ export default function App() {
                   { id: 'calendar', label: 'Calendar' },
                   { id: 'payments', label: 'Payments' },
                   { id: 'commerce', label: 'E-Commerce' },
+                  { id: 'automation', label: 'Automation' },
                 ].map(cat => (
                   <button key={cat.id} onClick={() => setMarketFilter(cat.id)} style={{
                     padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem',
@@ -3995,77 +4001,239 @@ export default function App() {
                 ))}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
-                {[
-                  // ── CRM PLATFORMS ──
-                  { provider: 'hubspot', name: 'HubSpot', cat: 'crm', desc: 'Sync contacts, companies, deals and lifecycle pipelines.' },
-                  { provider: 'salesforce', name: 'Salesforce', cat: 'crm', desc: 'Sync Accounts, Contacts, Opportunities and enterprise pipelines.' },
-                  { provider: 'pipedrive', name: 'Pipedrive', cat: 'crm', desc: 'Sync Persons, Organizations, and Sales pipelines.' },
-                  { provider: 'zoho', name: 'Zoho CRM & ERP', cat: 'crm', desc: 'Sync Zoho CRM contacts/deals and Zoho Books ERP inventory ledger.' },
-                  { provider: 'merge', name: 'Merge.dev', cat: 'crm', desc: 'Unified API wrapper proxying CRM, HRIS and ATS systems.' },
-                  { provider: 'unifiedto', name: 'Unified.to', cat: 'crm', desc: 'Unified API gateway integrating 150+ CRM and HR systems.' },
+              {/* Integration Cards Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                {(() => {
+                  // Brand colors per provider
+                  const brandColors = {
+                    hubspot: '#ff7a00', salesforce: '#00a1e0', pipedrive: '#26b860',
+                    zoho: '#d14836', dynamics365: '#002050', slack: '#4a154b',
+                    discord: '#5865f2', gmail: '#ea4335', outlook_mail: '#0078d4',
+                    google_calendar: '#4285f4', outlook_calendar: '#0078d4',
+                    stripe: '#635bff', razorpay: '#2d8cff', paypal: '#003087',
+                    online_banking: '#1a5276', shopify: '#95bf47', woocommerce: '#96588a',
+                    amazon: '#ff9900', flipkart: '#f8d210', zapier: '#ff4a00',
+                    mock: '#8b5cf6',
+                  };
 
-                  // ── COMMUNICATION ──
-                  { provider: 'zapier', name: 'Zapier Webhooks', cat: 'communication', desc: 'Trigger automated Zapier flows on new contacts, deals and orders sync.' },
-                  { provider: 'slack', name: 'Slack Enterprise', cat: 'communication', desc: 'Real-time team notification webhooks and CRM deal alerts.' },
+                  // Provider list driven by the backend registry (falls back to providers array from API)
+                  const providerCards = providers.length > 0 ? providers : [];
 
-                  // ── EMAIL ──
-                  { provider: 'gmail', name: 'Gmail & Google Workspace', cat: 'email', desc: 'Sync customer email threads, outreach logs, and automated replies.' },
-                  { provider: 'outlook_mail', name: 'Microsoft Outlook Email', cat: 'email', desc: 'Enterprise Office 365 email sync and thread normalization.' },
+                  // Helper to get relative time
+                  const relativeTime = (dateStr) => {
+                    if (!dateStr) return null;
+                    const diff = Date.now() - new Date(dateStr).getTime();
+                    const mins = Math.floor(diff / 60000);
+                    if (mins < 1) return 'Just now';
+                    if (mins < 60) return `${mins}m ago`;
+                    const hrs = Math.floor(mins / 60);
+                    if (hrs < 24) return `${hrs}h ago`;
+                    const days = Math.floor(hrs / 24);
+                    return `${days}d ago`;
+                  };
 
-                  // ── CALENDAR ──
-                  { provider: 'google_calendar', name: 'Google Calendar API', cat: 'calendar', desc: 'Sync meeting schedules, sales demos, and calendar availability.' },
-                  { provider: 'outlook_calendar', name: 'Outlook 365 Calendar', cat: 'calendar', desc: 'Enterprise Microsoft 365 calendar scheduling & event logs.' },
+                  return providerCards
+                    .filter(item => {
+                      if (marketFilter === 'all') return true;
+                      return item.category === marketFilter;
+                    })
+                    .map(item => {
+                      const status = item.status || 'Not Connected';
+                      const isMock = item.provider === 'mock';
+                      const isComingSoon = item.comingSoon === true;
+                      const isConnected = status === 'Connected';
+                      const isSyncingNow = status === 'Syncing' || isSyncing[item.provider];
+                      const isExpired = status === 'Expired';
+                      const isRevoked = status === 'Revoked';
+                      const isFailed = status === 'Connection Failed';
+                      const isConnecting = status === 'Connecting';
+                      const brandColor = brandColors[item.provider] || '#8b5cf6';
+                      const displayName = item.displayName || item.provider;
+                      const caps = item.capabilities || [];
+                      const counts = item.syncedCounts;
+                      const lastSync = relativeTime(item.lastSyncedAt);
 
-                  // ── PAYMENTS ──
-                  { provider: 'razorpay', name: 'Razorpay Gateway', cat: 'payments', desc: 'Sync merchant payments, UPI transfers, subscriptions, and payout ledgers.' },
-                  { provider: 'paypal', name: 'PayPal Enterprise', cat: 'payments', desc: 'Global transaction processing, merchant payouts, and subscription ledgers.' },
-                  { provider: 'online_banking', name: 'Corporate Net Banking', cat: 'payments', desc: 'Sync IMPS/NEFT/RTGS wire transfers and corporate bank statements.' },
+                      // Card border color based on state
+                      const borderColor = isComingSoon ? 'rgba(48,54,61,0.3)'
+                        : isConnected ? 'rgba(46,213,115,0.25)'
+                        : isSyncingNow ? 'rgba(31,111,235,0.4)'
+                        : (isExpired || isRevoked || isFailed) ? 'rgba(248,81,73,0.3)'
+                        : isConnecting ? 'rgba(31,111,235,0.4)'
+                        : 'rgba(48,54,61,0.5)';
 
-                  // ── E-COMMERCE ──
-                  { provider: 'shopify', name: 'Shopify Enterprise', cat: 'commerce', desc: 'Sync customer profiles, e-commerce orders, and product catalogs.' },
-                  { provider: 'flipkart', name: 'Flipkart Marketplace API', cat: 'commerce', desc: 'Sync Flipkart merchant orders, customer purchases, and inventory ledgers.' },
-                  { provider: 'amazon', name: 'Amazon Selling Partner', cat: 'commerce', desc: 'Merchant fulfillment orders, FBA tracking, and inventory ledgers.' },
-
-                  // ── DEVELOPER SANDBOX ──
-                  { provider: 'mock', name: 'Developer Sandbox (Mock)', cat: 'crm', desc: 'Simulated static CRM data for rapid testing without credentials.' }
-                ]
-                  .filter(item => marketFilter === 'all' || marketFilter === item.cat)
-                  .map(item => {
-                    const pInfo = providers.find(p => p.provider === item.provider) || { status: 'Not Connected' };
-                    const isConnected = pInfo.status === 'Connected';
-                    const isMock = item.provider === 'mock';
-
-                    return (
-                      <div key={item.provider} style={{ background: 'rgba(22,27,34,0.4)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '160px' }}>
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                            <h4 style={{ margin: 0, color: '#e6edf3', fontSize: '0.92rem', fontWeight: '700' }}>{item.name}</h4>
-                            <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px', background: isConnected ? 'rgba(46,213,115,0.1)' : 'rgba(255,255,255,0.03)', color: isConnected ? '#2ed573' : '#8b949e', border: `1px solid ${isConnected ? 'rgba(46,213,115,0.2)' : 'rgba(48,54,61,0.3)'}` }}>
-                              {isConnected ? 'Connected' : 'Not Connected'}
-                            </span>
-                          </div>
-                          <p style={{ margin: 0, color: '#8b949e', fontSize: '0.78rem', lineHeight: '1.4' }}>{item.desc}</p>
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-                          {isMock ? (
-                            <button disabled style={{ width: '100%', padding: '7px', background: 'rgba(33,38,45,0.5)', border: '1px solid rgba(48,54,61,0.5)', color: '#8b949e', borderRadius: '6px', fontSize: '0.78rem', fontWeight: '600', cursor: 'not-allowed' }}>Connected By Default</button>
-                          ) : isConnected ? (
-                            <>
-                              <button onClick={() => handleSync(item.provider)} disabled={isSyncing[item.provider]} style={{ flex: 1, padding: '7px', background: '#21262d', border: '1px solid rgba(240,246,255,0.1)', color: '#c9d1d9', borderRadius: '6px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer' }}>
-                                {isSyncing[item.provider] ? 'Syncing...' : 'Sync Now'}
-                              </button>
-                              <button onClick={() => confirmDisconnect(item.provider)} style={{ padding: '7px 10px', background: 'rgba(248,81,73,0.1)', border: '1px solid rgba(248,81,73,0.2)', color: '#f85149', borderRadius: '6px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer' }}>Revoke</button>
-                            </>
-                          ) : (
-                            <button onClick={() => handleConnect(item.provider, item.name)} style={{ width: '100%', padding: '7px', background: '#1f6feb', border: 'none', color: 'white', borderRadius: '6px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer' }}>
-                              Connect {item.name.split(' ')[0]}
-                            </button>
+                      return (
+                        <div key={item.provider} style={{
+                          background: isComingSoon ? 'rgba(22,27,34,0.25)' : 'rgba(22,27,34,0.4)',
+                          border: `1px solid ${borderColor}`,
+                          borderRadius: '12px', padding: '20px',
+                          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                          minHeight: '200px', transition: 'all 0.25s ease',
+                          opacity: isComingSoon ? 0.6 : 1,
+                          position: 'relative', overflow: 'hidden',
+                        }}>
+                          {/* Syncing animation bar */}
+                          {isSyncingNow && (
+                            <div style={{
+                              position: 'absolute', top: 0, left: 0, right: 0, height: '3px',
+                              background: 'rgba(31,111,235,0.2)', overflow: 'hidden',
+                            }}>
+                              <div style={{
+                                width: '40%', height: '100%', background: '#58a6ff',
+                                borderRadius: '2px',
+                                animation: 'syncPulse 1.5s ease-in-out infinite',
+                              }} />
+                              <style>{`@keyframes syncPulse { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }`}</style>
+                            </div>
                           )}
+
+                          {/* Coming Soon Badge */}
+                          {isComingSoon && (
+                            <div style={{
+                              position: 'absolute', top: '12px', right: '12px',
+                              padding: '2px 8px', borderRadius: '4px',
+                              background: 'rgba(210,153,34,0.15)', color: '#d29922',
+                              border: '1px solid rgba(210,153,34,0.25)',
+                              fontSize: '0.68rem', fontWeight: '700', letterSpacing: '0.03em',
+                            }}>Coming Soon</div>
+                          )}
+
+                          <div>
+                            {/* Provider Header */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                              {/* Brand Icon */}
+                              <div style={{
+                                width: '36px', height: '36px', borderRadius: '8px',
+                                background: `${brandColor}15`, border: `1px solid ${brandColor}30`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: '0.82rem', fontWeight: '800', color: brandColor,
+                                flexShrink: 0,
+                              }}>
+                                {displayName.substring(0, 2).toUpperCase()}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <h4 style={{ margin: 0, color: '#e6edf3', fontSize: '0.92rem', fontWeight: '700' }}>{displayName}</h4>
+                                <span style={{ fontSize: '0.68rem', color: '#484f58' }}>{item.oauthVersion || 'OAuth 2.0'}</span>
+                              </div>
+                              {/* Status Badge */}
+                              {!isComingSoon && (
+                                <span style={{
+                                  fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px', whiteSpace: 'nowrap',
+                                  background: isConnected ? 'rgba(46,213,115,0.1)'
+                                    : isSyncingNow ? 'rgba(31,111,235,0.1)'
+                                    : (isExpired || isRevoked || isFailed) ? 'rgba(248,81,73,0.1)'
+                                    : isConnecting ? 'rgba(31,111,235,0.1)'
+                                    : 'rgba(255,255,255,0.03)',
+                                  color: isConnected ? '#2ed573'
+                                    : isSyncingNow ? '#58a6ff'
+                                    : (isExpired || isRevoked || isFailed) ? '#f85149'
+                                    : isConnecting ? '#58a6ff'
+                                    : '#8b949e',
+                                  border: `1px solid ${isConnected ? 'rgba(46,213,115,0.2)'
+                                    : isSyncingNow ? 'rgba(31,111,235,0.2)'
+                                    : (isExpired || isRevoked || isFailed) ? 'rgba(248,81,73,0.2)'
+                                    : isConnecting ? 'rgba(31,111,235,0.2)'
+                                    : 'rgba(48,54,61,0.3)'}`,
+                                }}>
+                                  {isConnected ? '● Connected'
+                                    : isSyncingNow ? '● Syncing...'
+                                    : isExpired ? '⚠ Expired'
+                                    : isRevoked ? '⚠ Revoked'
+                                    : isFailed ? '⚠ Failed'
+                                    : isConnecting ? '● Connecting...'
+                                    : 'Not Connected'}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Description */}
+                            <p style={{ margin: '0 0 10px', color: '#8b949e', fontSize: '0.78rem', lineHeight: '1.4' }}>
+                              {(isExpired && 'Authorization has expired. Your token needs to be renewed.')
+                                || (isRevoked && 'Access was revoked from your provider account.')
+                                || (isFailed && 'Connection failed. Please try reconnecting.')
+                                || item.description || ''}
+                            </p>
+
+                            {/* Capability Chips */}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '8px' }}>
+                              {caps.slice(0, 5).map((cap, ci) => (
+                                <span key={ci} style={{
+                                  padding: '2px 6px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: '600',
+                                  background: 'rgba(255,255,255,0.03)', color: '#8b949e',
+                                  border: '1px solid rgba(48,54,61,0.3)',
+                                }}>{cap}</span>
+                              ))}
+                            </div>
+
+                            {/* Synced Counts & Last Sync (only when connected) */}
+                            {isConnected && counts && (
+                              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '6px', fontSize: '0.74rem' }}>
+                                {counts.contacts > 0 && <span style={{ color: '#58a6ff' }}>📇 {counts.contacts} contacts</span>}
+                                {counts.companies > 0 && <span style={{ color: '#a78bfa' }}>🏢 {counts.companies} companies</span>}
+                                {counts.deals > 0 && <span style={{ color: '#2ed573' }}>💰 {counts.deals} deals</span>}
+                                {lastSync && <span style={{ color: '#484f58' }}>🕐 {lastSync}</span>}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                            {isComingSoon ? (
+                              <button disabled style={{
+                                width: '100%', padding: '8px', background: 'rgba(33,38,45,0.3)',
+                                border: '1px solid rgba(48,54,61,0.3)', color: '#484f58',
+                                borderRadius: '6px', fontSize: '0.78rem', fontWeight: '600', cursor: 'not-allowed',
+                              }}>Coming Soon</button>
+                            ) : isMock ? (
+                              <button disabled style={{
+                                width: '100%', padding: '8px', background: 'rgba(139,92,246,0.08)',
+                                border: '1px solid rgba(139,92,246,0.2)', color: '#a78bfa',
+                                borderRadius: '6px', fontSize: '0.78rem', fontWeight: '600', cursor: 'not-allowed',
+                              }}>● Sandbox Active</button>
+                            ) : isConnected ? (
+                              <>
+                                <button onClick={() => handleSync(item.provider)} disabled={isSyncing[item.provider]} style={{
+                                  flex: 1, padding: '8px', background: '#21262d',
+                                  border: '1px solid rgba(240,246,255,0.1)', color: '#c9d1d9',
+                                  borderRadius: '6px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer',
+                                  transition: 'all 0.15s',
+                                }}>
+                                  {isSyncing[item.provider] ? '⟳ Syncing...' : '⟳ Sync Now'}
+                                </button>
+                                <button onClick={() => confirmDisconnect(item.provider)} style={{
+                                  padding: '8px 12px', background: 'rgba(248,81,73,0.08)',
+                                  border: '1px solid rgba(248,81,73,0.2)', color: '#f85149',
+                                  borderRadius: '6px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer',
+                                  transition: 'all 0.15s',
+                                }}>Disconnect</button>
+                              </>
+                            ) : isSyncingNow ? (
+                              <button disabled style={{
+                                width: '100%', padding: '8px', background: 'rgba(31,111,235,0.08)',
+                                border: '1px solid rgba(31,111,235,0.2)', color: '#58a6ff',
+                                borderRadius: '6px', fontSize: '0.78rem', fontWeight: '600', cursor: 'not-allowed',
+                              }}>⟳ Synchronizing...</button>
+                            ) : (isExpired || isRevoked || isFailed) ? (
+                              <button onClick={() => handleConnect(item.provider, displayName)} style={{
+                                width: '100%', padding: '8px',
+                                background: 'linear-gradient(135deg, rgba(248,81,73,0.15), rgba(255,122,0,0.15))',
+                                border: '1px solid rgba(248,81,73,0.3)', color: '#ff7b72',
+                                borderRadius: '6px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer',
+                                transition: 'all 0.15s',
+                              }}>⟳ Reconnect {displayName.split(' ')[0]}</button>
+                            ) : (
+                              <button onClick={() => handleConnect(item.provider, displayName)} style={{
+                                width: '100%', padding: '8px',
+                                background: 'linear-gradient(135deg, #1f6feb, #388bfd)',
+                                border: 'none', color: 'white',
+                                borderRadius: '6px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer',
+                                transition: 'all 0.15s',
+                              }}>Connect {displayName.split(' ')[0]}</button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    });
+                })()}
               </div>
             </div>
 
@@ -5726,20 +5894,66 @@ run();`}</pre>
         </div>
 
         {/* Confirm Disconnect Modal */}
-        {showConfirmModal && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(10,14,20,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001 }}>
-            <div style={{ background: '#0d1117', border: '1px solid rgba(248,81,73,0.4)', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <h4 style={{ margin: 0, color: '#e6edf3', fontSize: '1rem', fontWeight: '700' }}>Revoke connection?</h4>
-              <p style={{ margin: 0, color: '#8b949e', fontSize: '0.82rem', lineHeight: '1.5' }}>
-                Are you sure you want to disconnect <strong>{showConfirmModal.toUpperCase()}</strong>? This will delete all local contacts and companies synced under this provider workspace.
-              </p>
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                <button onClick={() => setShowConfirmModal(null)} style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(48,54,61,0.5)', color: '#8b949e', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
-                <button onClick={handleDisconnect} style={{ padding: '8px 16px', background: '#f85149', border: 'none', color: 'white', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer' }}>Disconnect</button>
+        {/* Enhanced Disconnect Modal with Data Retention Option */}
+        {showConfirmModal && (() => {
+          const disconnectProvider = showConfirmModal;
+          const pInfo = providers.find(p => p.provider === disconnectProvider);
+          const pName = pInfo?.displayName || disconnectProvider.charAt(0).toUpperCase() + disconnectProvider.slice(1);
+          const pCounts = pInfo?.syncedCounts;
+          const hasData = pCounts && (pCounts.contacts > 0 || pCounts.companies > 0 || pCounts.deals > 0);
+          return (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(10,14,20,0.7)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001 }}>
+              <div style={{ background: '#0d1117', border: '1px solid rgba(248,81,73,0.35)', padding: '28px', borderRadius: '14px', width: '90%', maxWidth: '440px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 16px 48px rgba(0,0,0,0.5)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(248,81,73,0.1)', border: '1px solid rgba(248,81,73,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>⚠</div>
+                  <h4 style={{ margin: 0, color: '#e6edf3', fontSize: '1.05rem', fontWeight: '700' }}>Disconnect {pName}?</h4>
+                </div>
+
+                <p style={{ margin: 0, color: '#c9d1d9', fontSize: '0.82rem', lineHeight: '1.6' }}>
+                  Disconnecting will stop Universal API from accessing your <strong>{pName}</strong> account. The provider authorization will be revoked where supported.
+                </p>
+
+                {hasData && (
+                  <div style={{ background: 'rgba(248,81,73,0.04)', border: '1px solid rgba(248,81,73,0.15)', borderRadius: '8px', padding: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                      <input
+                        type="checkbox"
+                        id="retain-data-checkbox"
+                        checked={disconnectRetainData}
+                        onChange={(e) => setDisconnectRetainData(e.target.checked)}
+                        style={{ accentColor: '#58a6ff', cursor: 'pointer' }}
+                      />
+                      <label htmlFor="retain-data-checkbox" style={{ color: '#e6edf3', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer' }}>
+                        Keep synced data after disconnect
+                      </label>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '0.76rem', color: '#8b949e' }}>
+                      {pCounts.contacts > 0 && <span>📇 {pCounts.contacts} contacts</span>}
+                      {pCounts.companies > 0 && <span>🏢 {pCounts.companies} companies</span>}
+                      {pCounts.deals > 0 && <span>💰 {pCounts.deals} deals</span>}
+                    </div>
+                    <p style={{ margin: '8px 0 0', color: '#8b949e', fontSize: '0.74rem', lineHeight: '1.4' }}>
+                      {disconnectRetainData
+                        ? 'Records will be kept but can no longer be refreshed from the provider.'
+                        : 'All synced records from this provider will be permanently deleted.'}
+                    </p>
+                  </div>
+                )}
+
+                {!hasData && (
+                  <p style={{ margin: 0, color: '#8b949e', fontSize: '0.78rem' }}>
+                    No synced data found for this provider.
+                  </p>
+                )}
+
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '4px' }}>
+                  <button onClick={() => { setShowConfirmModal(null); setDisconnectRetainData(false); }} style={{ padding: '9px 18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(48,54,61,0.5)', color: '#8b949e', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.15s' }}>Cancel</button>
+                  <button onClick={handleDisconnect} style={{ padding: '9px 18px', background: '#f85149', border: 'none', color: 'white', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s' }}>Disconnect</button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Platform Credential Setup Modal (CTO & User Credentials Form) */}
         {credentialModal && (

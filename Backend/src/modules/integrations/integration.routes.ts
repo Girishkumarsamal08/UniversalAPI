@@ -5,8 +5,12 @@ import * as IntegrationController from './integration.controller';
 
 const router = Router();
 
-// Expose integrations CRUD
+// Public endpoint — provider catalog (no auth needed)
+router.get('/metadata', IntegrationController.getProviderMetadata);
+
+// Authenticated integration CRUD
 router.get('/', authMiddleware, IntegrationController.getIntegrations);
+router.get('/:provider/status', authMiddleware, IntegrationController.getStatus);
 router.get('/:provider/connect', authMiddleware, IntegrationController.connect);
 router.post('/:provider/connect', authMiddleware, IntegrationController.connect);
 router.post('/:provider/disconnect', authMiddleware, IntegrationController.disconnect);

@@ -1,14 +1,23 @@
 // Integration Service — OAuth flow and normalization sync coordinator
+// Refactored to use provider-metadata registry and oauth-config objects
+// instead of hardcoded if/else chains.
+
 import prisma from '../../database/prisma.client';
 import { getProviderAdapter } from '../../providers/provider.registry';
-import { HubSpotAdapter } from '../../providers/hubspot.adapter';
-import { SalesforceAdapter } from '../../providers/salesforce.adapter';
-import { PipedriveAdapter } from '../../providers/pipedrive.adapter';
-import { IntegrationDTO, OAuthUrlResponse, SyncResponse, IntegrationStatus } from './integration.types';
+import { IntegrationDTO, OAuthUrlResponse, SyncResponse, IntegrationStatus, DisconnectOptions } from './integration.types';
+import { PROVIDER_REGISTRY, getProviderMeta, getAllProviderKeys } from './provider-metadata';
+import { getOAuthConfig, supportsOAuth } from './oauth-config';
 import { memoryLogs } from '../../middleware/logging.middleware';
 import { logger } from '../../utils/logger';
 
-// Helper to log integration events to the system logs
+// ────────────────────────────────────────────────────────────────
+// LOGGING HELPER
+// ────────────────────────────────────────────────────────────────
+
+/**
+ * Log integration lifecycle events to the ApiLog table (or memory fallback).
+ * Every connect, sync, refresh, disconnect, and revoke action generates a log.
+ */
 export const logIntegrationEvent = async (
   userId: string,
   event: string,
@@ -41,6 +50,10 @@ export const logIntegrationEvent = async (
   }
 };
 
+// ────────────────────────────────────────────────────────────────
+// GET INTEGRATIONS (enriched with provider metadata + synced counts)
+// ────────────────────────────────────────────────────────────────
+
 export const getIntegrationsForUser = async (userId: string, organizationId?: string): Promise<IntegrationDTO[]> => {
   let userIds = [userId];
   if (organizationId) {
@@ -57,100 +70,115 @@ export const getIntegrationsForUser = async (userId: string, organizationId?: st
     where: { userId: { in: userIds } },
   });
 
-  const defaultProviders = [
-    'hubspot', 'salesforce', 'pipedrive', 'zoho', 'merge', 'unifiedto',
-    'gmail', 'outlook_mail',
-    'google_calendar', 'outlook_calendar',
-    'razorpay', 'paypal', 'online_banking',
-    'shopify', 'flipkart', 'amazon',
-    'zapier', 'slack',
-    'mock'
-  ];
+  // Use the provider registry as the canonical list
+  const allProviderKeys = getAllProviderKeys();
 
-  const allProviderKeys = Array.from(new Set([...defaultProviders, ...dbConnections.map(c => c.provider)]));
+  // Fetch synced record counts per provider for the org
+  let syncedCountsByProvider: Record<string, { contacts: number; companies: number; deals: number }> = {};
+  if (organizationId) {
+    try {
+      const [contactCounts, companyCounts, dealCounts] = await Promise.all([
+        prisma.contact.groupBy({ by: ['provider'], where: { organizationId }, _count: true }),
+        prisma.company.groupBy({ by: ['provider'], where: { organizationId }, _count: true }),
+        prisma.deal.groupBy({ by: ['provider'], where: { organizationId }, _count: true }),
+      ]);
+      for (const c of contactCounts) {
+        if (!syncedCountsByProvider[c.provider]) syncedCountsByProvider[c.provider] = { contacts: 0, companies: 0, deals: 0 };
+        syncedCountsByProvider[c.provider].contacts = c._count;
+      }
+      for (const c of companyCounts) {
+        if (!syncedCountsByProvider[c.provider]) syncedCountsByProvider[c.provider] = { contacts: 0, companies: 0, deals: 0 };
+        syncedCountsByProvider[c.provider].companies = c._count;
+      }
+      for (const d of dealCounts) {
+        if (!syncedCountsByProvider[d.provider]) syncedCountsByProvider[d.provider] = { contacts: 0, companies: 0, deals: 0 };
+        syncedCountsByProvider[d.provider].deals = d._count;
+      }
+    } catch (err) {
+      logger.warn('Failed to fetch synced counts:', err);
+    }
+  }
 
-  return allProviderKeys.map((provider) => {
-    const conn = dbConnections.find((c) => c.provider === provider);
-    const isMock = provider === 'mock';
+  return allProviderKeys.map((providerKey) => {
+    const meta = getProviderMeta(providerKey);
+    if (!meta) return null;
+
+    const conn = dbConnections.find((c) => c.provider === providerKey);
+    const isMock = providerKey === 'mock';
     const currentStatus: IntegrationStatus = (conn?.status as IntegrationStatus) || (isMock ? 'Connected' : 'Not Connected');
 
-    let capabilities = ['Sync Data', 'Webhooks'];
-    if (['hubspot', 'salesforce', 'pipedrive', 'zoho', 'mock'].includes(provider)) {
-      capabilities = ['Contacts', 'Companies', 'Deals'];
-    } else if (['gmail', 'outlook_mail'].includes(provider)) {
-      capabilities = ['Email Threads', 'Outreach Logs', 'Delivery Tracking'];
-    } else if (['google_calendar', 'outlook_calendar'].includes(provider)) {
-      capabilities = ['Calendar Events', 'Availability Slots', 'Booking Sync'];
-    } else if (['razorpay', 'paypal', 'online_banking'].includes(provider)) {
-      capabilities = ['Payment Transactions', 'Merchant Ledger', 'Payout Webhooks'];
-    } else if (['shopify', 'flipkart', 'amazon'].includes(provider)) {
-      capabilities = ['Customer Orders', 'Product Catalogs', 'Inventory Ledger'];
-    }
-
     return {
-      id: conn?.id || `new-${provider}`,
-      provider,
+      id: conn?.id || `new-${providerKey}`,
+      provider: providerKey,
+      category: meta.category,
+      displayName: meta.displayName,
       status: currentStatus,
       connectedAt: conn?.connectedAt?.toISOString() || (isMock ? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() : new Date().toISOString()),
       lastSyncedAt: conn?.lastSyncedAt?.toISOString() || (isMock ? new Date(Date.now() - 10 * 60 * 1000).toISOString() : undefined),
-      connectedAccount: (conn as any)?.connectedAccount || (isMock ? `${provider}@unifiedcrm.io` : undefined),
-      capabilities,
-      oauthVersion: isMock ? 'Mock Mode' : 'OAuth 2.0 / API Key',
-    };
-  });
+      connectedAccount: (conn as any)?.connectedAccount || (isMock ? `mock@unifiedcrm.io` : undefined),
+      capabilities: meta.capabilities,
+      oauthVersion: meta.oauthVersion,
+      syncedCounts: syncedCountsByProvider[providerKey] || (isMock ? { contacts: 12, companies: 5, deals: 8 } : undefined),
+      expiresAt: conn?.expiresAt?.toISOString(),
+      comingSoon: meta.comingSoon,
+      scopes: meta.scopes,
+    } as IntegrationDTO;
+  }).filter(Boolean) as IntegrationDTO[];
 };
+
+// ────────────────────────────────────────────────────────────────
+// GENERATE OAUTH AUTHORIZATION URL
+// Uses oauth-config.ts lookup instead of if/else chains
+// ────────────────────────────────────────────────────────────────
 
 export const generateAuthorizationUrl = async (
   provider: string,
   userId: string
 ): Promise<OAuthUrlResponse> => {
   const p = provider.toLowerCase();
-  
-  // Look up credentials based on provider
-  let clientId = '';
-  let redirectUri = '';
-  let authBaseUrl = '';
-  let scopes = '';
+  const config = getOAuthConfig(p);
 
-  if (p === 'hubspot') {
-    clientId = process.env.HUBSPOT_CLIENT_ID || 'your_hubspot_client_id';
-    redirectUri = process.env.HUBSPOT_REDIRECT_URI || `http://localhost:3000/api/v1/integrations/hubspot/callback`;
-    authBaseUrl = 'https://app.hubspot.com/oauth/authorize';
-    scopes = 'contacts crm.objects.contacts.read crm.objects.contacts.write crm.objects.companies.read crm.objects.companies.write';
-  } else if (p === 'salesforce') {
-    clientId = process.env.SALESFORCE_CLIENT_ID || 'your_salesforce_client_id';
-    redirectUri = process.env.SALESFORCE_REDIRECT_URI || `http://localhost:3000/api/v1/integrations/salesforce/callback`;
-    authBaseUrl = 'https://login.salesforce.com/services/oauth2/authorize';
-    scopes = 'api refresh_token';
-  } else if (p === 'pipedrive') {
-    clientId = process.env.PIPEDRIVE_CLIENT_ID || 'your_pipedrive_client_id';
-    redirectUri = process.env.PIPEDRIVE_REDIRECT_URI || `http://localhost:3000/api/v1/integrations/pipedrive/callback`;
-    authBaseUrl = 'https://oauth.pipedrive.com/oauth/authorize';
-  }
-
-  // If Client ID is placeholder, route to local simulation endpoint
-  if (clientId.includes('your_') || !clientId) {
-    logger.info(`OAuth credentials not configured for ${provider}. Falling back to simulation mode.`);
-    const simulationUrl = `http://localhost:3000/api/v1/integrations/${p}/oauth-simulate?userId=${userId}`;
+  if (!config) {
+    // Provider doesn't use OAuth — fall back to simulation
+    logger.info(`No OAuth config for ${provider}. Falling back to simulation mode.`);
     return {
       provider,
-      authorizationUrl: simulationUrl,
+      authorizationUrl: `http://localhost:3000/api/v1/integrations/${p}/oauth-simulate?userId=${userId}`,
     };
   }
 
-  // Generate real OAuth URL
+  // Read credentials from env using the config's env key names
+  const clientId = process.env[config.clientIdEnvKey] || '';
+  const redirectUri = process.env[config.redirectUriEnvKey] || `http://localhost:3000/api/v1/integrations/${p}/callback`;
+
+  // If Client ID is placeholder, route to local simulation endpoint
+  if (!clientId || clientId.startsWith('your_')) {
+    logger.info(`OAuth credentials not configured for ${provider}. Falling back to simulation mode.`);
+    return {
+      provider,
+      authorizationUrl: `http://localhost:3000/api/v1/integrations/${p}/oauth-simulate?userId=${userId}`,
+    };
+  }
+
+  // Build real OAuth authorization URL
+  const scopeStr = config.scopes.join(config.scopeDelimiter || ' ');
   const query = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: 'code',
-    ...(scopes ? { scope: scopes } : {}),
+    state: userId,
+    ...(scopeStr ? { scope: scopeStr } : {}),
   });
 
   return {
     provider,
-    authorizationUrl: `${authBaseUrl}?${query.toString()}`,
+    authorizationUrl: `${config.authBaseUrl}?${query.toString()}`,
   };
 };
+
+// ────────────────────────────────────────────────────────────────
+// EXCHANGE AUTHORIZATION CODE FOR TOKENS
+// ────────────────────────────────────────────────────────────────
 
 export const exchangeCodeForToken = async (
   provider: string,
@@ -170,31 +198,18 @@ export const exchangeCodeForToken = async (
     refreshToken = `mock-refresh-token-${p}-${Date.now()}`;
     expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiry
   } else {
-    // Real Token Exchange
-    let tokenUrl = '';
-    let clientId = '';
-    let clientSecret = '';
-    let redirectUri = '';
-
-    if (p === 'hubspot') {
-      tokenUrl = 'https://api.hubapi.com/oauth/v1/token';
-      clientId = process.env.HUBSPOT_CLIENT_ID!;
-      clientSecret = process.env.HUBSPOT_CLIENT_SECRET!;
-      redirectUri = process.env.HUBSPOT_REDIRECT_URI!;
-    } else if (p === 'salesforce') {
-      tokenUrl = 'https://login.salesforce.com/services/oauth2/token';
-      clientId = process.env.SALESFORCE_CLIENT_ID!;
-      clientSecret = process.env.SALESFORCE_CLIENT_SECRET!;
-      redirectUri = process.env.SALESFORCE_REDIRECT_URI!;
-    } else if (p === 'pipedrive') {
-      tokenUrl = 'https://oauth.pipedrive.com/oauth/token';
-      clientId = process.env.PIPEDRIVE_CLIENT_ID!;
-      clientSecret = process.env.PIPEDRIVE_CLIENT_SECRET!;
-      redirectUri = process.env.PIPEDRIVE_REDIRECT_URI!;
+    // Real Token Exchange — lookup config
+    const config = getOAuthConfig(p);
+    if (!config) {
+      throw new Error(`No OAuth configuration found for provider: ${provider}`);
     }
 
+    const clientId = process.env[config.clientIdEnvKey]!;
+    const clientSecret = process.env[config.clientSecretEnvKey]!;
+    const redirectUri = process.env[config.redirectUriEnvKey]!;
+
     try {
-      const res = await fetch(tokenUrl, {
+      const res = await fetch(config.tokenUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -217,9 +232,11 @@ export const exchangeCodeForToken = async (
       refreshToken = body.refresh_token;
       if (body.expires_in) {
         expiresAt = new Date(Date.now() + body.expires_in * 1000);
+      } else if (config.tokenExpirySeconds) {
+        expiresAt = new Date(Date.now() + config.tokenExpirySeconds * 1000);
       }
     } catch (err: any) {
-      await logIntegrationEvent(userId, `OAuth Failed for ${provider}`, true, err.message);
+      await logIntegrationEvent(userId, `OAuth Token Exchange Failed for ${provider}`, true, err.message);
       throw err;
     }
   }
@@ -247,8 +264,12 @@ export const exchangeCodeForToken = async (
     },
   });
 
-  await logIntegrationEvent(userId, `${provider.charAt(0).toUpperCase() + provider.slice(1)} Connected`);
+  await logIntegrationEvent(userId, `${provider.charAt(0).toUpperCase() + provider.slice(1)} Connected via OAuth`);
 };
+
+// ────────────────────────────────────────────────────────────────
+// TOKEN REFRESH (with coalescing to prevent duplicate refreshes)
+// ────────────────────────────────────────────────────────────────
 
 const refreshLocks = new Map<string, Promise<void>>();
 
@@ -282,31 +303,21 @@ export const refreshAccessToken = async (provider: string, userId: string): Prom
           status: 'Connected',
         },
       });
-      await logIntegrationEvent(userId, `${provider.charAt(0).toUpperCase() + provider.slice(1)} Token Refreshed`);
+      await logIntegrationEvent(userId, `${provider.charAt(0).toUpperCase() + provider.slice(1)} Token Refreshed (Mock)`);
       return;
     }
 
-    // Real Token Refresh
-    let tokenUrl = '';
-    let clientId = '';
-    let clientSecret = '';
-
-    if (p === 'hubspot') {
-      tokenUrl = 'https://api.hubapi.com/oauth/v1/token';
-      clientId = process.env.HUBSPOT_CLIENT_ID!;
-      clientSecret = process.env.HUBSPOT_CLIENT_SECRET!;
-    } else if (p === 'salesforce') {
-      tokenUrl = 'https://login.salesforce.com/services/oauth2/token';
-      clientId = process.env.SALESFORCE_CLIENT_ID!;
-      clientSecret = process.env.SALESFORCE_CLIENT_SECRET!;
-    } else if (p === 'pipedrive') {
-      tokenUrl = 'https://oauth.pipedrive.com/oauth/token';
-      clientId = process.env.PIPEDRIVE_CLIENT_ID!;
-      clientSecret = process.env.PIPEDRIVE_CLIENT_SECRET!;
+    // Real Token Refresh — lookup config
+    const config = getOAuthConfig(p);
+    if (!config) {
+      throw new Error(`No OAuth configuration found for provider: ${provider}`);
     }
 
+    const clientId = process.env[config.clientIdEnvKey]!;
+    const clientSecret = process.env[config.clientSecretEnvKey]!;
+
     try {
-      const res = await fetch(tokenUrl, {
+      const res = await fetch(config.tokenUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -353,24 +364,84 @@ export const refreshAccessToken = async (provider: string, userId: string): Prom
   }
 };
 
-export const revokeConnection = async (provider: string, userId: string): Promise<void> => {
+// ────────────────────────────────────────────────────────────────
+// PROVIDER-SIDE TOKEN REVOCATION
+// Calls the provider's revoke endpoint if one exists
+// ────────────────────────────────────────────────────────────────
+
+const revokeProviderToken = async (provider: string, token: string): Promise<void> => {
+  const config = getOAuthConfig(provider);
+  if (!config?.revokeUrl) {
+    logger.info(`Provider ${provider} does not have a revoke endpoint. Skipping provider-side revocation.`);
+    return;
+  }
+
+  // Don't attempt revocation for mock tokens
+  if (token.startsWith('mock-')) {
+    logger.info(`Skipping provider-side revocation for mock token.`);
+    return;
+  }
+
+  try {
+    logger.info(`Revoking token at provider ${provider}: ${config.revokeUrl}`);
+    const res = await fetch(config.revokeUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ token }),
+    });
+
+    if (res.ok) {
+      logger.info(`Provider-side revocation succeeded for ${provider}`);
+    } else {
+      logger.warn(`Provider-side revocation returned status ${res.status} for ${provider}`);
+    }
+  } catch (err: any) {
+    // Revocation failure should NOT block the disconnect flow
+    logger.warn(`Provider-side revocation failed for ${provider}: ${err.message}`);
+  }
+};
+
+// ────────────────────────────────────────────────────────────────
+// DISCONNECT / REVOKE CONNECTION
+// Supports both Policy A (delete data) and Policy B (retain data)
+// ────────────────────────────────────────────────────────────────
+
+export const revokeConnection = async (
+  provider: string,
+  userId: string,
+  options?: DisconnectOptions
+): Promise<void> => {
   const p = provider.toLowerCase();
-  
-  // Set integration back to Not Connected state
-  await prisma.integration.delete({
-    where: {
-      userId_provider: { userId, provider: p },
-    },
+  const retainData = options?.retainData ?? false;
+
+  // Step 1: Look up the connection to get the token for revocation
+  const conn = await prisma.integration.findUnique({
+    where: { userId_provider: { userId, provider: p } },
   });
 
-  // Clean synced items for this provider/user org context
+  // Step 2: Attempt provider-side token revocation
+  if (conn?.accessToken) {
+    await revokeProviderToken(p, conn.accessToken);
+  }
+
+  // Step 3: Delete the integration record
+  if (conn) {
+    await prisma.integration.delete({
+      where: { id: conn.id },
+    });
+  }
+
+  // Step 4: Handle synced data based on retainData flag
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { memberships: { select: { organizationId: true } } },
   });
-  
+
   const organizationId = user?.memberships[0]?.organizationId;
-  if (organizationId) {
+  if (organizationId && !retainData) {
+    // Policy A: Delete all synced records from this provider
     await prisma.contact.deleteMany({
       where: { provider: p, organizationId },
     });
@@ -380,10 +451,21 @@ export const revokeConnection = async (provider: string, userId: string): Promis
     await prisma.deal.deleteMany({
       where: { provider: p, organizationId },
     });
+    logger.info(`Deleted synced data for provider ${p} in org ${organizationId}`);
+  } else if (organizationId && retainData) {
+    // Policy B: Data is retained (no deletion) — records remain with their provider tag
+    // Users can distinguish them by provider field and the integration being disconnected
+    logger.info(`Retaining synced data for provider ${p} in org ${organizationId} (retainData=true)`);
   }
 
-  await logIntegrationEvent(userId, `${provider.charAt(0).toUpperCase() + provider.slice(1)} Disconnected`);
+  // Step 5: Log the event
+  const action = retainData ? 'Disconnected (Data Retained)' : 'Disconnected & Data Purged';
+  await logIntegrationEvent(userId, `${provider.charAt(0).toUpperCase() + provider.slice(1)} ${action}`);
 };
+
+// ────────────────────────────────────────────────────────────────
+// SYNC PROVIDER DATA (fetch + normalize + upsert)
+// ────────────────────────────────────────────────────────────────
 
 export const syncProviderData = async (
   provider: string,
@@ -391,6 +473,7 @@ export const syncProviderData = async (
   organizationId: string
 ): Promise<SyncResponse> => {
   const p = provider.toLowerCase();
+  const syncStart = Date.now();
   logger.info(`Starting CRM sync for ${provider} under organization: ${organizationId}`);
 
   // Fetch connection details
@@ -511,6 +594,8 @@ export const syncProviderData = async (
     }
 
     const lastSyncedAt = new Date();
+    const duration = Date.now() - syncStart;
+
     await prisma.integration.update({
       where: { id: conn.id },
       data: {
@@ -519,7 +604,10 @@ export const syncProviderData = async (
       },
     });
 
-    await logIntegrationEvent(userId, `${provider.charAt(0).toUpperCase() + provider.slice(1)} Sync Completed`);
+    await logIntegrationEvent(
+      userId,
+      `${provider.charAt(0).toUpperCase() + provider.slice(1)} Sync Completed — ${contacts.length} contacts, ${companies.length} companies, ${syncedDealsCount} deals in ${(duration / 1000).toFixed(1)}s`
+    );
 
     return {
       provider,
@@ -530,6 +618,7 @@ export const syncProviderData = async (
         deals: syncedDealsCount,
       },
       lastSyncedAt: lastSyncedAt.toISOString(),
+      duration,
     };
   } catch (err: any) {
     await prisma.integration.update({
@@ -541,10 +630,19 @@ export const syncProviderData = async (
   }
 };
 
-/**
- * Scans the database periodically and proactively refreshes OAuth tokens
- * that are close to expiring (within 15 minutes of expiration).
- */
+// ────────────────────────────────────────────────────────────────
+// GET PROVIDER METADATA (public — for frontend catalog)
+// ────────────────────────────────────────────────────────────────
+
+export const getProviderMetadataList = () => {
+  return PROVIDER_REGISTRY;
+};
+
+// ────────────────────────────────────────────────────────────────
+// PROACTIVE TOKEN REFRESH SCHEDULER
+// Scans DB every 5 minutes and refreshes tokens expiring within 15 minutes
+// ────────────────────────────────────────────────────────────────
+
 export const startProactiveRefreshScheduler = (): void => {
   logger.info('⏰ Proactive OAuth Token Refresh Scheduler initialized');
   
