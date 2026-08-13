@@ -495,6 +495,3 @@ This project is proprietary. All rights reserved.
 
 ---
 
-<p align="center">
-  <sub>Built with ☕ and an unreasonable amount of TypeScript.</sub>
-</p>
