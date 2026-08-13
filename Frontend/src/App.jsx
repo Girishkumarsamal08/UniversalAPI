@@ -4016,6 +4016,29 @@ export default function App() {
                     mock: '#8b5cf6',
                   };
 
+                  // Provider brand vector logo URLs (Simple Icons SVG CDN)
+                  const providerLogoUrls = {
+                    hubspot: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/hubspot.svg',
+                    salesforce: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/salesforce.svg',
+                    pipedrive: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/pipedrive.svg',
+                    zoho: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/zoho.svg',
+                    dynamics365: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/microsoftdynamics365.svg',
+                    slack: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/slack.svg',
+                    discord: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/discord.svg',
+                    gmail: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/gmail.svg',
+                    outlook_mail: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/microsoftoutlook.svg',
+                    google_calendar: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/googlecalendar.svg',
+                    outlook_calendar: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/microsoftoutlook.svg',
+                    stripe: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/stripe.svg',
+                    razorpay: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/razorpay.svg',
+                    paypal: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/paypal.svg',
+                    shopify: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/shopify.svg',
+                    woocommerce: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/woocommerce.svg',
+                    amazon: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/amazon.svg',
+                    flipkart: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/flipkart.svg',
+                    zapier: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/zapier.svg',
+                  };
+
                   // Provider list driven by the backend registry (falls back to providers array from API)
                   const providerCards = providers.length > 0 ? providers : [];
 
@@ -4100,15 +4123,31 @@ export default function App() {
                           <div>
                             {/* Provider Header */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                              {/* Brand Icon */}
+                              {/* Brand Icon / Vector Logo */}
                               <div style={{
                                 width: '36px', height: '36px', borderRadius: '8px',
                                 background: `${brandColor}15`, border: `1px solid ${brandColor}30`,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 fontSize: '0.82rem', fontWeight: '800', color: brandColor,
-                                flexShrink: 0,
+                                flexShrink: 0, padding: '7px', boxSizing: 'border-box', overflow: 'hidden',
                               }}>
-                                {displayName.substring(0, 2).toUpperCase()}
+                                {providerLogoUrls[item.provider] ? (
+                                  <img
+                                    src={providerLogoUrls[item.provider]}
+                                    alt={displayName}
+                                    style={{
+                                      width: '100%', height: '100%', objectFit: 'contain',
+                                      filter: 'brightness(0) invert(1)',
+                                    }}
+                                    onError={(e) => {
+                                      e.target.style.display = 'none';
+                                      if (e.target.nextSibling) e.target.nextSibling.style.display = 'block';
+                                    }}
+                                  />
+                                ) : null}
+                                <span style={{ display: providerLogoUrls[item.provider] ? 'none' : 'block' }}>
+                                  {displayName.substring(0, 2).toUpperCase()}
+                                </span>
                               </div>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <h4 style={{ margin: 0, color: '#e6edf3', fontSize: '0.92rem', fontWeight: '700' }}>{displayName}</h4>
