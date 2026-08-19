@@ -862,7 +862,7 @@ function CtoErpConsoleView({ currentUser, showToast }) {
 }
 
 // 3D Glassmorphism Calling Slider CTA
-function SliderCTA({ setShowAuth, setRegistering }) {
+function SliderCTA({ openAuthModal, setShowAuth, setRegistering }) {
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -887,11 +887,21 @@ function SliderCTA({ setShowAuth, setRegistering }) {
     if (!isDragging) return;
     setIsDragging(false);
     if (dragX >= triggerThreshold) {
-      setShowAuth(true);
-      setRegistering(false);
+      if (openAuthModal) {
+        openAuthModal(false);
+      } else {
+        setShowAuth(true);
+        setRegistering(false);
+        if (typeof window !== 'undefined') window.history.pushState({ auth: true, reg: false }, '', '/login');
+      }
     } else if (dragX <= -triggerThreshold) {
-      setShowAuth(true);
-      setRegistering(true);
+      if (openAuthModal) {
+        openAuthModal(true);
+      } else {
+        setShowAuth(true);
+        setRegistering(true);
+        if (typeof window !== 'undefined') window.history.pushState({ auth: true, reg: true }, '', '/register');
+      }
     }
     setDragX(0); // Snap back
   };
@@ -1200,7 +1210,6 @@ function SliderCTA({ setShowAuth, setRegistering }) {
 
 export default function App() {
   const [contacts, setContacts] = useState([]);
-  const [showAuth, setShowAuth] = useState(false);
   const [simTab, setSimTab] = useState('hubspot');
 
   // Custom interactive & dynamic landing page/auth states
@@ -1277,16 +1286,51 @@ export default function App() {
     return aliasMap[clean] || 'dashboard';
   };
 
+  const getInitialAuth = () => {
+    if (typeof window === 'undefined') return { show: false, reg: false };
+    const p = window.location.pathname.replace(/^\/+/, '').split('/')[0].toLowerCase();
+    if (!AUTH_TOKEN && (p === 'login' || p === 'register')) {
+      return { show: true, reg: p === 'register' };
+    }
+    return { show: false, reg: false };
+  };
+
+  const initialAuth = getInitialAuth();
+  const [showAuth, setShowAuth] = useState(initialAuth.show);
+  const [registering, setRegistering] = useState(initialAuth.reg);
+
   const [activeTab, setActiveTabState] = useState(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && AUTH_TOKEN) {
       return getTabFromPath(window.location.pathname);
     }
     return 'dashboard';
   });
 
+  const openAuthModal = (isReg = false) => {
+    setShowAuth(true);
+    setRegistering(isReg);
+    setForgotMode(false);
+    if (typeof window !== 'undefined') {
+      const targetPath = isReg ? '/register' : '/login';
+      if (window.location.pathname !== targetPath) {
+        window.history.pushState({ auth: true, reg: isReg }, '', targetPath);
+      }
+    }
+  };
+
+  const closeAuthModal = () => {
+    setShowAuth(false);
+    setForgotMode(false);
+    if (typeof window !== 'undefined' && !isLoggedIn) {
+      if (window.location.pathname !== '/') {
+        window.history.pushState(null, '', '/');
+      }
+    }
+  };
+
   const setActiveTab = (tabId, updateUrl = true) => {
     setActiveTabState(tabId);
-    if (updateUrl && typeof window !== 'undefined') {
+    if (updateUrl && typeof window !== 'undefined' && isLoggedIn) {
       const targetPath = tabId === 'dashboard' ? '/dashboard' : `/${tabId}`;
       if (window.location.pathname !== targetPath) {
         window.history.pushState({ tab: tabId }, '', targetPath);
@@ -1294,28 +1338,45 @@ export default function App() {
     }
   };
 
-  // Sync with browser back/forward buttons
+  // Synchronize browser history and path changes
   useEffect(() => {
-    const handlePopState = () => {
-      const tab = getTabFromPath(window.location.pathname);
-      setActiveTabState(tab);
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+    const handleLocationChange = () => {
+      if (typeof window === 'undefined') return;
+      const rawPath = window.location.pathname.replace(/^\/+/, '').split('/')[0].toLowerCase();
 
-  // Ensure initial URL reflects the active tab
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const currentPath = window.location.pathname;
-      if (currentPath === '/' || currentPath === '') {
-        window.history.replaceState({ tab: activeTab }, '', `/${activeTab}`);
+      if (!isLoggedIn) {
+        if (rawPath === 'login') {
+          setShowAuth(true);
+          setRegistering(false);
+          setForgotMode(false);
+        } else if (rawPath === 'register') {
+          setShowAuth(true);
+          setRegistering(true);
+          setForgotMode(false);
+        } else {
+          setShowAuth(false);
+          setForgotMode(false);
+          if (window.location.pathname !== '/') {
+            window.history.replaceState(null, '', '/');
+          }
+        }
+      } else {
+        setShowAuth(false);
+        const tab = getTabFromPath(window.location.pathname);
+        setActiveTabState(tab);
+        const targetPath = tab === 'dashboard' ? '/dashboard' : `/${tab}`;
+        if (window.location.pathname !== targetPath) {
+          window.history.replaceState({ tab }, '', targetPath);
+        }
       }
-    }
-  }, []);
+    };
+
+    handleLocationChange();
+    window.addEventListener('popstate', handleLocationChange);
+    return () => window.removeEventListener('popstate', handleLocationChange);
+  }, [isLoggedIn]);
 
   const [isLoggedIn, setIsLoggedIn] = useState(!!AUTH_TOKEN);
-  const [registering, setRegistering] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
   const [loginForm, setLoginForm] = useState({
     name: '',
@@ -2118,6 +2179,9 @@ export default function App() {
     setCurrentUser(null);
     setIsLoggedIn(false);
     setShowAuth(false);
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', '/');
+    }
   };
 
   const handleConnect = (provider, displayName) => {
@@ -2337,7 +2401,7 @@ export default function App() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
               <a href="#features" style={{ color: '#8b949e', textDecoration: 'none', fontSize: '0.88rem', fontWeight: '600', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#e6edf3'} onMouseLeave={e => e.currentTarget.style.color = '#8b949e'}>Features</a>
               <a href="#simulator" style={{ color: '#8b949e', textDecoration: 'none', fontSize: '0.88rem', fontWeight: '600', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#e6edf3'} onMouseLeave={e => e.currentTarget.style.color = '#8b949e'}>Simulator</a>
-              <button onClick={() => setShowAuth(true)} style={{
+              <button onClick={() => openAuthModal(false)} style={{
                 background: 'linear-gradient(135deg, #1f6feb 0%, #8b5cf6 100%)',
                 color: 'white', border: 'none', padding: '10px 24px', borderRadius: '8px',
                 fontSize: '0.85rem', fontWeight: '800', cursor: 'pointer',
@@ -2372,7 +2436,7 @@ export default function App() {
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px', marginBottom: '70px' }}>
-              <SliderCTA setShowAuth={setShowAuth} setRegistering={setRegistering} />
+              <SliderCTA openAuthModal={openAuthModal} setShowAuth={setShowAuth} setRegistering={setRegistering} />
               <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
                 <a href="#simulator" style={{
                   background: 'rgba(33,38,45,0.4)', color: '#c9d1d9', border: '1px solid rgba(48,54,61,0.8)',
@@ -2825,7 +2889,7 @@ export default function App() {
           <div style={{ position: 'absolute', top: '15%', left: '10%', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(31,111,235,0.08) 0%, transparent 60%)', borderRadius: '50%', pointerEvents: 'none' }} />
 
           {/* Back button pinned to top-left */}
-          <button type="button" onClick={() => setShowAuth(false)} style={{
+          <button type="button" onClick={closeAuthModal} style={{
             position: 'absolute', top: '40px', left: '40px',
             background: 'rgba(33,38,45,0.3)', border: '1px solid rgba(48,54,61,0.5)', color: '#8b949e', fontSize: '0.8rem', fontWeight: '600',
             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
@@ -3060,7 +3124,16 @@ export default function App() {
                   {loginLoading ? 'Authenticating...' : registering ? 'Register Workspace' : 'Access Console'}
                 </button>
 
-                <button type="button" onClick={() => { setRegistering(r => !r); setForgotMode(false); setLoginError(''); setSuccessMsg(''); }} style={{
+                <button type="button" onClick={() => {
+                  const nextReg = !registering;
+                  setRegistering(nextReg);
+                  if (typeof window !== 'undefined') {
+                    window.history.replaceState({ auth: true, reg: nextReg }, '', nextReg ? '/register' : '/login');
+                  }
+                  setForgotMode(false);
+                  setLoginError('');
+                  setSuccessMsg('');
+                }} style={{
                   background: 'none', border: 'none', color: '#58a6ff', fontSize: '0.78rem', fontWeight: '600',
                   cursor: 'pointer', display: 'block', margin: '18px auto 0', textDecoration: 'none', transition: 'color 0.2s'
                 }} onMouseEnter={e => e.currentTarget.style.color = '#a78bfa'} onMouseLeave={e => e.currentTarget.style.color = '#58a6ff'}>
