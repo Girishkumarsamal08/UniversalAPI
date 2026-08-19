@@ -866,7 +866,7 @@ function SliderCTA({ setShowAuth, setRegistering }) {
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
-  
+
   const maxDrag = 140; // Increased displacement for wider track
   const triggerThreshold = 125; // Threshold to activate
 
@@ -920,7 +920,7 @@ function SliderCTA({ setShowAuth, setRegistering }) {
   }, [isDragging, startX, dragX]);
 
   const percent = Math.min(100, (Math.abs(dragX) / maxDrag) * 100);
-  
+
   // Dynamic styling variables
   let leftOverlayBg = 'transparent';
   let rightOverlayBg = 'transparent';
@@ -940,7 +940,8 @@ function SliderCTA({ setShowAuth, setRegistering }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
       {/* CSS Keyframes injected inline */}
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes calling-wave {
           0% { transform: scale(0.85); opacity: 0.5; }
           50% { opacity: 0.8; }
@@ -979,7 +980,7 @@ function SliderCTA({ setShowAuth, setRegistering }) {
       </span>
 
       {/* Main Track */}
-      <div 
+      <div
         style={{
           position: 'relative',
           width: '380px',
@@ -1021,14 +1022,14 @@ function SliderCTA({ setShowAuth, setRegistering }) {
         }} />
 
         {/* Left End Zone (Register) */}
-        <div style={{ 
-          position: 'absolute', 
-          left: '24px', 
-          display: 'flex', 
-          alignItems: 'center', 
+        <div style={{
+          position: 'absolute',
+          left: '24px',
+          display: 'flex',
+          alignItems: 'center',
           gap: '8px',
-          opacity: dragX < 0 ? 1 : 0.4 + (dragX > 0 ? -percent/100 : 0),
-          transform: dragX < 0 ? `scale(${1 + percent/400})` : 'scale(1)',
+          opacity: dragX < 0 ? 1 : 0.4 + (dragX > 0 ? -percent / 100 : 0),
+          transform: dragX < 0 ? `scale(${1 + percent / 400})` : 'scale(1)',
           transition: 'opacity 0.2s, transform 0.2s',
           pointerEvents: 'none',
           zIndex: 2
@@ -1046,8 +1047,8 @@ function SliderCTA({ setShowAuth, setRegistering }) {
             <line x1="20" y1="8" x2="20" y2="14"></line>
             <line x1="17" y1="11" x2="23" y2="11"></line>
           </svg>
-          <span style={{ 
-            color: '#a78bfa', fontSize: '0.8rem', fontWeight: '800', 
+          <span style={{
+            color: '#a78bfa', fontSize: '0.8rem', fontWeight: '800',
             letterSpacing: '0.06em', textTransform: 'uppercase', textShadow: dragX < 0 ? '0 0 10px rgba(139,92,246,0.8)' : 'none'
           }}>
             Register
@@ -1055,14 +1056,14 @@ function SliderCTA({ setShowAuth, setRegistering }) {
         </div>
 
         {/* Right End Zone (Login) */}
-        <div style={{ 
-          position: 'absolute', 
-          right: '24px', 
-          display: 'flex', 
-          alignItems: 'center', 
+        <div style={{
+          position: 'absolute',
+          right: '24px',
+          display: 'flex',
+          alignItems: 'center',
           gap: '8px',
-          opacity: dragX > 0 ? 1 : 0.4 + (dragX < 0 ? -percent/100 : 0),
-          transform: dragX > 0 ? `scale(${1 + percent/400})` : 'scale(1)',
+          opacity: dragX > 0 ? 1 : 0.4 + (dragX < 0 ? -percent / 100 : 0),
+          transform: dragX > 0 ? `scale(${1 + percent / 400})` : 'scale(1)',
           transition: 'opacity 0.2s, transform 0.2s',
           pointerEvents: 'none',
           zIndex: 2
@@ -1073,8 +1074,8 @@ function SliderCTA({ setShowAuth, setRegistering }) {
               background: 'rgba(31,111,235,0.15)', animation: 'calling-wave 2s infinite', right: '-8px'
             }} />
           )}
-          <span style={{ 
-            color: '#58a6ff', fontSize: '0.8rem', fontWeight: '800', 
+          <span style={{
+            color: '#58a6ff', fontSize: '0.8rem', fontWeight: '800',
             letterSpacing: '0.06em', textTransform: 'uppercase', textShadow: dragX > 0 ? '0 0 10px rgba(31,111,235,0.8)' : 'none'
           }}>
             Login
@@ -1120,14 +1121,14 @@ function SliderCTA({ setShowAuth, setRegistering }) {
             color: '#e6edf3'
           }}>
             {/* Left Chevron SVG (pulses left when idle) */}
-            <svg 
-              width="11" 
-              height="11" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke={dragX < 0 ? '#a78bfa' : '#ffffff'} 
-              strokeWidth="3" 
-              strokeLinecap="round" 
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={dragX < 0 ? '#a78bfa' : '#ffffff'}
+              strokeWidth="3"
+              strokeLinecap="round"
               strokeLinejoin="round"
               style={{
                 animation: !isDragging ? 'chevron-left-pulse 1.5s infinite ease-in-out' : 'none',
@@ -1143,28 +1144,28 @@ function SliderCTA({ setShowAuth, setRegistering }) {
               width: '18px',
               height: '18px',
               borderRadius: '50%',
-              background: dragX > 0 
+              background: dragX > 0
                 ? 'radial-gradient(circle, #58a6ff 0%, #1f6feb 100%)'
-                : dragX < 0 
+                : dragX < 0
                   ? 'radial-gradient(circle, #c084fc 0%, #8b5cf6 100%)'
                   : 'radial-gradient(circle, #ffffff 0%, #8b949e 100%)',
-              boxShadow: dragX > 0 
-                ? '0 0 12px rgba(88,166,255,0.9)' 
-                : dragX < 0 
-                  ? '0 0 12px rgba(192,132,252,0.9)' 
+              boxShadow: dragX > 0
+                ? '0 0 12px rgba(88,166,255,0.9)'
+                : dragX < 0
+                  ? '0 0 12px rgba(192,132,252,0.9)'
                   : '0 0 8px rgba(255,255,255,0.4)',
               transition: 'background 0.2s, box-shadow 0.2s'
             }} />
 
             {/* Right Chevron SVG (pulses right when idle) */}
-            <svg 
-              width="11" 
-              height="11" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke={dragX > 0 ? '#58a6ff' : '#ffffff'} 
-              strokeWidth="3" 
-              strokeLinecap="round" 
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={dragX > 0 ? '#58a6ff' : '#ffffff'}
+              strokeWidth="3"
+              strokeLinecap="round"
               strokeLinejoin="round"
               style={{
                 animation: !isDragging ? 'chevron-right-pulse 1.5s infinite ease-in-out' : 'none',
@@ -1175,7 +1176,7 @@ function SliderCTA({ setShowAuth, setRegistering }) {
               <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
           </div>
-          
+
           {/* Top highlight shine overlay */}
           <div style={{
             position: 'absolute',
@@ -1186,11 +1187,11 @@ function SliderCTA({ setShowAuth, setRegistering }) {
           }} />
         </div>
       </div>
-      
+
       {/* Slider instructions */}
       <span style={{ fontSize: '0.66rem', color: '#8b949e', opacity: 0.7, letterSpacing: '0.04em' }}>
-        {isDragging 
-          ? (dragX > 0 ? 'Release to Login' : 'Release to Register') 
+        {isDragging
+          ? (dragX > 0 ? 'Release to Login' : 'Release to Register')
           : 'Hold and slide the puck left or right'}
       </span>
     </div>
@@ -1423,7 +1424,7 @@ export default function App() {
     setAiMessages([
       {
         sender: 'assistant',
-        text: !isLoggedIn 
+        text: !isLoggedIn
           ? "👋 Hi there! I'm your Universal API Assistant. You are currently logged out. Please click 'Access Console' or register a new workspace to sign in. Once signed in, you will unlock full CRM API features, dynamic sandboxes, telemetries, and playground tools! Let me know if you need help with anything."
           : "👋 Hi there! I'm your Universal API Assistant. I can help guide you through our platform features, explain our database encryption, help with integrations, or walk you through the API Playground. How can I help you today?"
       }
@@ -1544,7 +1545,7 @@ export default function App() {
             100% { box-shadow: 0 0 0 0 rgba(31,111,235,0); }
           }
         `}</style>
-        
+
         {/* Chat Window */}
         {isAiAssistantOpen && (
           <div style={{
@@ -2382,7 +2383,8 @@ export default function App() {
 
               {/* Executive Leadership & Company Head Value proposition */}
               <div style={{ marginTop: '48px', background: 'linear-gradient(135deg, rgba(31,111,235,0.06), rgba(139,92,246,0.06))', border: '1px solid rgba(56,139,253,0.25)', borderRadius: '16px', padding: '32px', textAlign: 'left' }}>
-                <style dangerouslySetInnerHTML={{ __html: `
+                <style dangerouslySetInnerHTML={{
+                  __html: `
                   .feature-glass-card {
                     background: rgba(13, 20, 35, 0.45);
                     backdrop-filter: blur(12px);
@@ -3461,10 +3463,10 @@ export default function App() {
 
               {/* Main Content Workspace Split */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 2fr))', gap: '24px' }}>
-                
+
                 {/* LEFT COLUMN: Controls, Charts, Guides */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', gridColumn: 'span 2' }}>
-                  
+
                   {/* A. Workspace Approvals Console (Preserved Logic) */}
                   {(currentUser?.role === 'CTO' || currentUser?.role === 'Admin') && (
                     <div style={{
@@ -3522,7 +3524,7 @@ export default function App() {
                     <h4 style={{ color: '#e6edf3', margin: 0, fontSize: '0.88rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <BarChart3 size={15} color="#58a6ff" /> Real-time Gateway Throughput (Last 7 Days)
                     </h4>
-                    
+
                     <div style={{ position: 'relative', height: '140px', marginTop: '12px' }}>
                       <svg style={{ width: '100%', height: '100%', overflow: 'visible' }}>
                         <defs>
@@ -3540,10 +3542,10 @@ export default function App() {
                         <line x1="0%" y1="20" x2="100%" y2="20" stroke="rgba(48,54,61,0.2)" strokeDasharray="3" />
                         <line x1="0%" y1="70" x2="100%" y2="70" stroke="rgba(48,54,61,0.2)" strokeDasharray="3" />
                         <line x1="0%" y1="120" x2="100%" y2="120" stroke="rgba(48,54,61,0.2)" strokeDasharray="3" />
-                        
+
                         {/* Area Fill */}
                         <path d="M 0 120 L 0 60 L 80 80 L 160 30 L 240 90 L 320 20 L 400 45 L 480 85 L 560 10 L 640 50 L 720 120 Z" fill="url(#chartGradient)" />
-                        
+
                         {/* Line Stroke */}
                         <path d="M 0 60 L 80 80 L 160 30 L 240 90 L 320 20 L 400 45 L 480 85 L 560 10 L 640 50" fill="none" stroke="url(#strokeGradient)" strokeWidth="3" strokeLinecap="round" />
                       </svg>
@@ -3564,7 +3566,7 @@ export default function App() {
 
                 {/* RIGHT COLUMN: Scopes, Statuses & Regional Monitors */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                  
+
 
 
                   {/* B. Role-specific widget outputs */}
@@ -4170,12 +4172,10 @@ export default function App() {
                     const borderColor = isConnected
                       ? 'rgba(46,213,115,0.3)'
                       : isSyncingNow
-                      ? 'rgba(88,166,255,0.4)'
-                      : isConfigReq
-                      ? 'rgba(210,153,34,0.35)'
-                      : (isExpired || isReauthReq || isFailed)
-                      ? 'rgba(248,81,73,0.35)'
-                      : 'rgba(48,54,61,0.5)';
+                        ? 'rgba(88,166,255,0.4)'
+                        : (isExpired || isReauthReq || isFailed)
+                          ? 'rgba(248,81,73,0.35)'
+                          : 'rgba(48,54,61,0.5)';
 
                     return (
                       <div
@@ -4286,67 +4286,56 @@ export default function App() {
                                 background: isConnected
                                   ? 'rgba(46,213,115,0.12)'
                                   : isSyncingNow
-                                  ? 'rgba(88,166,255,0.12)'
-                                  : isConfigReq
-                                  ? 'rgba(210,153,34,0.12)'
-                                  : (isExpired || isReauthReq || isFailed)
-                                  ? 'rgba(248,81,73,0.12)'
-                                  : isConnecting
-                                  ? 'rgba(88,166,255,0.12)'
-                                  : 'rgba(139,148,158,0.1)',
+                                    ? 'rgba(88,166,255,0.12)'
+                                    : (isExpired || isReauthReq || isFailed)
+                                      ? 'rgba(248,81,73,0.12)'
+                                      : isConnecting
+                                        ? 'rgba(88,166,255,0.12)'
+                                        : 'rgba(139,148,158,0.1)',
                                 color: isConnected
                                   ? '#2ed573'
                                   : isSyncingNow
-                                  ? '#58a6ff'
-                                  : isConfigReq
-                                  ? '#d29922'
-                                  : (isExpired || isReauthReq || isFailed)
-                                  ? '#f85149'
-                                  : isConnecting
-                                  ? '#58a6ff'
-                                  : '#8b949e',
-                                border: `1px solid ${
-                                  isConnected
+                                    ? '#58a6ff'
+                                    : (isExpired || isReauthReq || isFailed)
+                                      ? '#f85149'
+                                      : isConnecting
+                                        ? '#58a6ff'
+                                        : '#8b949e',
+                                border: `1px solid ${isConnected
                                     ? 'rgba(46,213,115,0.25)'
                                     : isSyncingNow
-                                    ? 'rgba(88,166,255,0.25)'
-                                    : isConfigReq
-                                    ? 'rgba(210,153,34,0.25)'
-                                    : (isExpired || isReauthReq || isFailed)
-                                    ? 'rgba(248,81,73,0.25)'
-                                    : 'rgba(48,54,61,0.4)'
-                                }`,
+                                      ? 'rgba(88,166,255,0.25)'
+                                      : (isExpired || isReauthReq || isFailed)
+                                        ? 'rgba(248,81,73,0.25)'
+                                        : 'rgba(48,54,61,0.4)'
+                                  }`,
                               }}
                             >
                               {isConnected
                                 ? '● Connected'
                                 : isSyncingNow
-                                ? '● Syncing...'
-                                : isConfigReq
-                                ? '🔧 Configuration required'
-                                : isExpired
-                                ? '⚠ Token Expired'
-                                : isReauthReq
-                                ? '⚠ Reauth required'
-                                : isFailed
-                                ? '⚠ Connection error'
-                                : isConnecting
-                                ? '● Connecting...'
-                                : isDisconnected
-                                ? '○ Disconnected'
-                                : '○ Not Connected'}
+                                  ? '● Syncing...'
+                                  : isExpired
+                                    ? '⚠ Reconnect required'
+                                    : isReauthReq
+                                      ? '⚠ Reauth required'
+                                      : isFailed
+                                        ? '⚠ Connection error'
+                                        : isConnecting
+                                          ? '● Connecting...'
+                                          : isDisconnected
+                                            ? '○ Disconnected'
+                                            : '○ Available'}
                             </span>
                           </div>
 
                           {/* Description */}
                           <p style={{ margin: '0 0 12px', color: '#8b949e', fontSize: '0.78rem', lineHeight: '1.45' }}>
-                            {isConfigReq
-                              ? `Developer credentials required in environment (.env).`
-                              : isExpired || isReauthReq
-                              ? 'Authorization has expired. Please reauthenticate this connection.'
+                            {isExpired || isReauthReq
+                              ? 'Connection expired. Please click reconnect to renew authorization.'
                               : isFailed
-                              ? 'Connection error. Please verify authorization and reconnect.'
-                              : item.description || 'Normalized integration layer for Universal API.'}
+                                ? 'Connection error. Please try reconnecting.'
+                                : item.description || `Connect your ${displayName} account to sync data seamlessly.`}
                           </p>
 
                           {/* Capability Chips */}
@@ -4469,24 +4458,6 @@ export default function App() {
                                 Disconnect
                               </button>
                             </>
-                          ) : isConfigReq ? (
-                            <button
-                              onClick={() => setSetupGuideModal(item)}
-                              style={{
-                                width: '100%',
-                                padding: '9px',
-                                background: 'rgba(210,153,34,0.12)',
-                                border: '1px solid rgba(210,153,34,0.3)',
-                                color: '#d29922',
-                                borderRadius: '7px',
-                                fontSize: '0.78rem',
-                                fontWeight: '700',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s',
-                              }}
-                            >
-                              🔧 Configure Credentials
-                            </button>
                           ) : isExpired || isReauthReq || isFailed ? (
                             <button
                               onClick={() => handleConnect(item.provider, displayName)}
@@ -5441,7 +5412,7 @@ run();`}</pre>
                             </span>
                           </div>
                           <span style={{ color: '#8b949e', fontSize: '0.8rem' }}>
-                            {selectedDocEndpoint.startsWith('GET') 
+                            {selectedDocEndpoint.startsWith('GET')
                               ? `Retrieve a standardized list of CRM ${selectedDocEndpoint.split('_')[1]} integrated from connected channels.`
                               : `Register a new ${selectedDocEndpoint.split('_')[1].replace(/s$/, '')} workspace record. Parameters are standardized and mapped dynamically.`
                             }

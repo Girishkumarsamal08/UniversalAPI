@@ -187,11 +187,7 @@ export const getIntegrationsForUser = async (userId: string, organizationId?: st
         currentStatus = 'CONNECTED';
       }
     } else {
-      if (!isConfigured) {
-        currentStatus = 'CONFIGURATION_REQUIRED';
-      } else {
-        currentStatus = 'NOT_CONNECTED';
-      }
+      currentStatus = 'NOT_CONNECTED';
     }
 
     return {
