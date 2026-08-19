@@ -1327,8 +1327,11 @@ export default function App() {
   const [explorerProvider, setExplorerProvider] = useState('hubspot');
   const [explorerModel, setExplorerModel] = useState('contact');
 
-  // Marketplace filter state
+  // Marketplace filter & details states
   const [marketFilter, setMarketFilter] = useState('all');
+  const [integrationSearch, setIntegrationSearch] = useState('');
+  const [selectedIntegrationDetails, setSelectedIntegrationDetails] = useState(null);
+  const [setupGuideModal, setSetupGuideModal] = useState(null);
   const [disconnectRetainData, setDisconnectRetainData] = useState(false);
 
   const [roleTabConfigs, setRoleTabConfigs] = useState(() => {
@@ -1402,6 +1405,19 @@ export default function App() {
   }, [currentUser]);
 
   useEffect(() => { if (isLoggedIn) fetchData(); }, [isLoggedIn, fetchData]);
+
+  // Listen for OAuth popup completion postMessage
+  useEffect(() => {
+    const handleOAuthMessage = (event) => {
+      if (event.data?.type === 'OAUTH_SUCCESS') {
+        const p = event.data.provider || 'provider';
+        showToast(`🎉 Connected to ${p.charAt(0).toUpperCase() + p.slice(1)} successfully!`, 'success');
+        fetchData();
+      }
+    };
+    window.addEventListener('message', handleOAuthMessage);
+    return () => window.removeEventListener('message', handleOAuthMessage);
+  }, [fetchData]);
 
   useEffect(() => {
     setAiMessages([
@@ -2015,18 +2031,24 @@ export default function App() {
 
   const handleConnect = async (provider, displayName) => {
     try {
-      showToast(`⚡ Provisioning Universal Gateway Connection for ${displayName || provider}...`, 'info');
-      const res = await api.post(`/integrations/${provider}/connect`, {
-        accountUserId: `${provider}_workspace_account`,
-        apiKey: `uc_tok_${provider}_${Date.now()}`
-      });
-
-      if (res.data.data?.status === 'PENDING_APPROVAL') {
-        showToast('Connection request submitted for administrator approval.', 'info');
+      showToast(`⚡ Initiating OAuth authorization for ${displayName || provider}...`, 'info');
+      const res = await api.get(`/integrations/${provider}/connect`);
+      if (res.data.data?.authorizationUrl) {
+        const width = 560;
+        const height = 680;
+        const left = window.screen.width / 2 - width / 2;
+        const top = window.screen.height / 2 - height / 2;
+        window.open(
+          res.data.data.authorizationUrl,
+          `Connect_${provider}`,
+          `width=${width},height=${height},top=${top},left=${left},status=no,resizable=yes`
+        );
+      } else if (res.data.data?.status === 'CONNECTED') {
+        showToast(`🎉 ${displayName || provider} is connected!`, 'success');
+        fetchData();
       } else {
-        showToast(`🎉 ${displayName || provider} connected successfully via Universal API Engine!`, 'success');
+        fetchData();
       }
-      fetchData();
     } catch (err) {
       showToast(`Connection failed: ${err.response?.data?.message || err.message}`, 'error');
     }
@@ -3977,72 +3999,120 @@ export default function App() {
             // INTEGRATION MARKETPLACE
             // ==========================================
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Header & Subtitle */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 6px', color: '#e6edf3', fontSize: '1.25rem', fontWeight: '800', letterSpacing: '-0.02em' }}>
+                    Integrations
+                  </h3>
+                  <p style={{ margin: 0, color: '#8b949e', fontSize: '0.84rem' }}>
+                    Connect your business tools to Universal API. Normalize customer data, messages, emails, calendars, and workspace workflows.
+                  </p>
+                </div>
+                {/* Real-time Search Input */}
+                <div style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
+                  <input
+                    type="text"
+                    value={integrationSearch}
+                    onChange={(e) => setIntegrationSearch(e.target.value)}
+                    placeholder="Search integrations..."
+                    style={{
+                      width: '100%',
+                      padding: '9px 14px 9px 36px',
+                      background: 'rgba(13,17,23,0.7)',
+                      border: '1px solid rgba(48,54,61,0.8)',
+                      borderRadius: '8px',
+                      color: '#e6edf3',
+                      fontSize: '0.82rem',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      transition: 'border-color 0.2s',
+                    }}
+                    onFocus={(e) => (e.target.style.borderColor = '#58a6ff')}
+                    onBlur={(e) => (e.target.style.borderColor = 'rgba(48,54,61,0.8)')}
+                  />
+                  <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8b949e', fontSize: '0.85rem' }}>
+                    🔍
+                  </span>
+                  {integrationSearch && (
+                    <button
+                      onClick={() => setIntegrationSearch('')}
+                      style={{
+                        position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                        background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer', fontSize: '0.8rem',
+                      }}
+                    >✕</button>
+                  )}
+                </div>
+              </div>
+
               {/* Category Filter Tabs */}
-              <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid rgba(48,54,61,0.3)', paddingBottom: '10px', overflowX: 'auto' }}>
+              <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid rgba(48,54,61,0.4)', paddingBottom: '12px', overflowX: 'auto' }}>
                 {[
-                  { id: 'all', label: 'All Verticals' },
-                  { id: 'crm', label: 'CRM Platforms' },
+                  { id: 'all', label: 'All' },
+                  { id: 'crm', label: 'CRM' },
                   { id: 'communication', label: 'Communication' },
                   { id: 'email', label: 'Email' },
                   { id: 'calendar', label: 'Calendar' },
-                  { id: 'payments', label: 'Payments' },
-                  { id: 'commerce', label: 'E-Commerce' },
-                  { id: 'automation', label: 'Automation' },
-                ].map(cat => (
-                  <button key={cat.id} onClick={() => setMarketFilter(cat.id)} style={{
-                    padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem',
-                    fontWeight: '600', cursor: 'pointer', transition: 'all 0.15s',
-                    background: marketFilter === cat.id ? 'rgba(31,111,235,0.15)' : 'transparent',
-                    color: marketFilter === cat.id ? '#58a6ff' : '#8b949e',
-                    border: marketFilter === cat.id ? '1px solid rgba(31,111,235,0.3)' : '1px solid transparent',
-                  }}>
-                    {cat.label}
-                  </button>
-                ))}
+                  { id: 'productivity', label: 'Productivity' },
+                ].map((cat) => {
+                  const isActive = marketFilter === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setMarketFilter(cat.id)}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        fontSize: '0.82rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        background: isActive ? 'rgba(56,139,253,0.15)' : 'rgba(22,27,34,0.3)',
+                        color: isActive ? '#58a6ff' : '#8b949e',
+                        border: isActive ? '1px solid rgba(56,139,253,0.4)' : '1px solid rgba(48,54,61,0.3)',
+                      }}
+                    >
+                      {cat.label}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Integration Cards Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
                 {(() => {
-                  // Brand colors per provider
                   const brandColors = {
-                    hubspot: '#ff7a00', salesforce: '#00a1e0', pipedrive: '#26b860',
-                    zoho: '#d14836', dynamics365: '#002050', slack: '#4a154b',
-                    discord: '#5865f2', gmail: '#ea4335', outlook_mail: '#0078d4',
-                    google_calendar: '#4285f4', outlook_calendar: '#0078d4',
-                    stripe: '#635bff', razorpay: '#2d8cff', paypal: '#003087',
-                    online_banking: '#1a5276', shopify: '#95bf47', woocommerce: '#96588a',
-                    amazon: '#ff9900', flipkart: '#f8d210', zapier: '#ff4a00',
+                    hubspot: '#ff7a00',
+                    salesforce: '#00a1e0',
+                    pipedrive: '#26b860',
+                    zoho: '#d14836',
+                    slack: '#4a154b',
+                    teams: '#5059c9',
+                    gmail: '#ea4335',
+                    outlook_mail: '#0078d4',
+                    google_calendar: '#4285f4',
+                    outlook_calendar: '#0078d4',
+                    calendly: '#006bff',
+                    notion: '#000000',
                     mock: '#8b5cf6',
                   };
 
-                  // Provider brand vector logo URLs (Simple Icons SVG CDN)
                   const providerLogoUrls = {
                     hubspot: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/hubspot.svg',
                     salesforce: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/salesforce.svg',
                     pipedrive: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/pipedrive.svg',
                     zoho: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/zoho.svg',
-                    dynamics365: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/microsoftdynamics365.svg',
                     slack: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/slack.svg',
-                    discord: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/discord.svg',
+                    teams: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/microsoftteams.svg',
                     gmail: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/gmail.svg',
                     outlook_mail: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/microsoftoutlook.svg',
                     google_calendar: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/googlecalendar.svg',
                     outlook_calendar: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/microsoftoutlook.svg',
-                    stripe: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/stripe.svg',
-                    razorpay: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/razorpay.svg',
-                    paypal: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/paypal.svg',
-                    shopify: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/shopify.svg',
-                    woocommerce: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/woocommerce.svg',
-                    amazon: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/amazon.svg',
-                    flipkart: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/flipkart.svg',
-                    zapier: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/zapier.svg',
+                    calendly: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/calendly.svg',
+                    notion: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/notion.svg',
                   };
 
-                  // Provider list driven by the backend registry (falls back to providers array from API)
-                  const providerCards = providers.length > 0 ? providers : [];
-
-                  // Helper to get relative time
                   const relativeTime = (dateStr) => {
                     if (!dateStr) return null;
                     const diff = Date.now() - new Date(dateStr).getTime();
@@ -4055,223 +4125,409 @@ export default function App() {
                     return `${days}d ago`;
                   };
 
-                  return providerCards
-                    .filter(item => {
-                      if (marketFilter === 'all') return true;
-                      return item.category === marketFilter;
-                    })
-                    .map(item => {
-                      const status = item.status || 'Not Connected';
-                      const isMock = item.provider === 'mock';
-                      const isComingSoon = item.comingSoon === true;
-                      const isConnected = status === 'Connected';
-                      const isSyncingNow = status === 'Syncing' || isSyncing[item.provider];
-                      const isExpired = status === 'Expired';
-                      const isRevoked = status === 'Revoked';
-                      const isFailed = status === 'Connection Failed';
-                      const isConnecting = status === 'Connecting';
-                      const brandColor = brandColors[item.provider] || '#8b5cf6';
-                      const displayName = item.displayName || item.provider;
-                      const caps = item.capabilities || [];
-                      const counts = item.syncedCounts;
-                      const lastSync = relativeTime(item.lastSyncedAt);
+                  const filteredProviders = providers
+                    .filter((item) => {
+                      if (marketFilter !== 'all' && item.category !== marketFilter) return false;
+                      if (!integrationSearch.trim()) return true;
+                      const q = integrationSearch.toLowerCase();
+                      const matchName = (item.displayName || item.provider).toLowerCase().includes(q);
+                      const matchDesc = (item.description || '').toLowerCase().includes(q);
+                      const matchCat = (item.category || '').toLowerCase().includes(q);
+                      const matchCaps = (item.capabilities || []).some((c) => c.toLowerCase().includes(q));
+                      return matchName || matchDesc || matchCat || matchCaps;
+                    });
 
-                      // Card border color based on state
-                      const borderColor = isComingSoon ? 'rgba(48,54,61,0.3)'
-                        : isConnected ? 'rgba(46,213,115,0.25)'
-                        : isSyncingNow ? 'rgba(31,111,235,0.4)'
-                        : (isExpired || isRevoked || isFailed) ? 'rgba(248,81,73,0.3)'
-                        : isConnecting ? 'rgba(31,111,235,0.4)'
-                        : 'rgba(48,54,61,0.5)';
+                  if (filteredProviders.length === 0) {
+                    return (
+                      <div style={{ gridColumn: '1 / -1', padding: '48px 24px', textAlign: 'center', background: 'rgba(22,27,34,0.3)', border: '1px solid rgba(48,54,61,0.4)', borderRadius: '12px' }}>
+                        <div style={{ fontSize: '28px', marginBottom: '8px' }}>🔍</div>
+                        <h4 style={{ color: '#e6edf3', margin: '0 0 6px', fontSize: '1rem' }}>No integrations match your search</h4>
+                        <p style={{ color: '#8b949e', margin: 0, fontSize: '0.82rem' }}>
+                          Try clearing your search query or selecting another category.
+                        </p>
+                      </div>
+                    );
+                  }
 
-                      return (
-                        <div key={item.provider} style={{
-                          background: isComingSoon ? 'rgba(22,27,34,0.25)' : 'rgba(22,27,34,0.4)',
+                  return filteredProviders.map((item) => {
+                    const status = item.status || 'NOT_CONNECTED';
+                    const isMock = item.provider === 'mock';
+                    const isConfigReq = status === 'CONFIGURATION_REQUIRED' || item.isConfigured === false;
+                    const isConnected = status === 'CONNECTED' || status === 'Connected';
+                    const isSyncingNow = status === 'SYNCING' || status === 'Syncing' || isSyncing[item.provider];
+                    const isExpired = status === 'TOKEN_EXPIRED' || status === 'Expired';
+                    const isReauthReq = status === 'REAUTH_REQUIRED' || status === 'Reauth Required';
+                    const isFailed = status === 'CONNECTION_ERROR' || status === 'Connection Failed';
+                    const isConnecting = status === 'CONNECTING' || status === 'Connecting';
+                    const isDisconnected = status === 'DISCONNECTED' || status === 'Disconnected';
+
+                    const brandColor = brandColors[item.provider] || '#8b5cf6';
+                    const displayName = item.displayName || item.provider;
+                    const caps = item.capabilities || [];
+                    const counts = item.syncedCounts;
+                    const lastSync = relativeTime(item.lastSyncedAt);
+
+                    const borderColor = isConnected
+                      ? 'rgba(46,213,115,0.3)'
+                      : isSyncingNow
+                      ? 'rgba(88,166,255,0.4)'
+                      : isConfigReq
+                      ? 'rgba(210,153,34,0.35)'
+                      : (isExpired || isReauthReq || isFailed)
+                      ? 'rgba(248,81,73,0.35)'
+                      : 'rgba(48,54,61,0.5)';
+
+                    return (
+                      <div
+                        key={item.provider}
+                        style={{
+                          background: 'rgba(22,27,34,0.5)',
+                          backdropFilter: 'blur(10px)',
                           border: `1px solid ${borderColor}`,
-                          borderRadius: '12px', padding: '20px',
-                          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                          minHeight: '200px', transition: 'all 0.25s ease',
-                          opacity: isComingSoon ? 0.6 : 1,
-                          position: 'relative', overflow: 'hidden',
-                        }}>
-                          {/* Syncing animation bar */}
-                          {isSyncingNow && (
-                            <div style={{
-                              position: 'absolute', top: 0, left: 0, right: 0, height: '3px',
-                              background: 'rgba(31,111,235,0.2)', overflow: 'hidden',
-                            }}>
-                              <div style={{
-                                width: '40%', height: '100%', background: '#58a6ff',
+                          borderRadius: '12px',
+                          padding: '22px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          minHeight: '230px',
+                          transition: 'all 0.2s ease',
+                          position: 'relative',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {/* Syncing animated pulse line */}
+                        {isSyncingNow && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              height: '3px',
+                              background: 'rgba(31,111,235,0.2)',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: '40%',
+                                height: '100%',
+                                background: '#58a6ff',
                                 borderRadius: '2px',
                                 animation: 'syncPulse 1.5s ease-in-out infinite',
-                              }} />
-                              <style>{`@keyframes syncPulse { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }`}</style>
-                            </div>
-                          )}
+                              }}
+                            />
+                            <style>{`@keyframes syncPulse { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }`}</style>
+                          </div>
+                        )}
 
-                          {/* Coming Soon Badge */}
-                          {isComingSoon && (
-                            <div style={{
-                              position: 'absolute', top: '12px', right: '12px',
-                              padding: '2px 8px', borderRadius: '4px',
-                              background: 'rgba(210,153,34,0.15)', color: '#d29922',
-                              border: '1px solid rgba(210,153,34,0.25)',
-                              fontSize: '0.68rem', fontWeight: '700', letterSpacing: '0.03em',
-                            }}>Coming Soon</div>
-                          )}
-
-                          <div>
-                            {/* Provider Header */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                              {/* Brand Icon / Vector Logo */}
-                              <div style={{
-                                width: '36px', height: '36px', borderRadius: '8px',
-                                background: `${brandColor}15`, border: `1px solid ${brandColor}30`,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: '0.82rem', fontWeight: '800', color: brandColor,
-                                flexShrink: 0, padding: '7px', boxSizing: 'border-box', overflow: 'hidden',
-                              }}>
+                        <div>
+                          {/* Header: Logo, Name & Status Badge */}
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              {/* Brand Vector Logo Box */}
+                              <div
+                                style={{
+                                  width: '40px',
+                                  height: '40px',
+                                  borderRadius: '10px',
+                                  background: isMock ? 'rgba(139,92,246,0.15)' : `${brandColor}15`,
+                                  border: `1px solid ${isMock ? 'rgba(139,92,246,0.35)' : `${brandColor}35`}`,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                  padding: '8px',
+                                  boxSizing: 'border-box',
+                                }}
+                              >
                                 {providerLogoUrls[item.provider] ? (
                                   <img
                                     src={providerLogoUrls[item.provider]}
                                     alt={displayName}
                                     style={{
-                                      width: '100%', height: '100%', objectFit: 'contain',
-                                      filter: 'brightness(0) invert(1)',
+                                      width: '100%',
+                                      height: '100%',
+                                      objectFit: 'contain',
+                                      filter: item.provider === 'notion' ? 'brightness(0) invert(1)' : 'brightness(0) invert(1)',
                                     }}
                                     onError={(e) => {
                                       e.target.style.display = 'none';
-                                      if (e.target.nextSibling) e.target.nextSibling.style.display = 'block';
                                     }}
                                   />
-                                ) : null}
-                                <span style={{ display: providerLogoUrls[item.provider] ? 'none' : 'block' }}>
-                                  {displayName.substring(0, 2).toUpperCase()}
+                                ) : (
+                                  <span style={{ color: brandColor, fontWeight: '800', fontSize: '0.85rem' }}>
+                                    {isMock ? '🧪' : displayName.substring(0, 2).toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div>
+                                <h4 style={{ margin: 0, color: '#e6edf3', fontSize: '0.96rem', fontWeight: '700' }}>
+                                  {displayName}
+                                </h4>
+                                <span style={{ fontSize: '0.7rem', color: '#8b949e', fontWeight: '500' }}>
+                                  {item.oauthVersion || 'OAuth 2.0'}
                                 </span>
                               </div>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <h4 style={{ margin: 0, color: '#e6edf3', fontSize: '0.92rem', fontWeight: '700' }}>{displayName}</h4>
-                                <span style={{ fontSize: '0.68rem', color: '#484f58' }}>{item.oauthVersion || 'OAuth 2.0'}</span>
-                              </div>
-                              {/* Status Badge */}
-                              {!isComingSoon && (
-                                <span style={{
-                                  fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px', whiteSpace: 'nowrap',
-                                  background: isConnected ? 'rgba(46,213,115,0.1)'
-                                    : isSyncingNow ? 'rgba(31,111,235,0.1)'
-                                    : (isExpired || isRevoked || isFailed) ? 'rgba(248,81,73,0.1)'
-                                    : isConnecting ? 'rgba(31,111,235,0.1)'
-                                    : 'rgba(255,255,255,0.03)',
-                                  color: isConnected ? '#2ed573'
-                                    : isSyncingNow ? '#58a6ff'
-                                    : (isExpired || isRevoked || isFailed) ? '#f85149'
-                                    : isConnecting ? '#58a6ff'
-                                    : '#8b949e',
-                                  border: `1px solid ${isConnected ? 'rgba(46,213,115,0.2)'
-                                    : isSyncingNow ? 'rgba(31,111,235,0.2)'
-                                    : (isExpired || isRevoked || isFailed) ? 'rgba(248,81,73,0.2)'
-                                    : isConnecting ? 'rgba(31,111,235,0.2)'
-                                    : 'rgba(48,54,61,0.3)'}`,
-                                }}>
-                                  {isConnected ? '● Connected'
-                                    : isSyncingNow ? '● Syncing...'
-                                    : isExpired ? '⚠ Expired'
-                                    : isRevoked ? '⚠ Revoked'
-                                    : isFailed ? '⚠ Failed'
-                                    : isConnecting ? '● Connecting...'
-                                    : 'Not Connected'}
-                                </span>
-                              )}
                             </div>
 
-                            {/* Description */}
-                            <p style={{ margin: '0 0 10px', color: '#8b949e', fontSize: '0.78rem', lineHeight: '1.4' }}>
-                              {(isExpired && 'Authorization has expired. Your token needs to be renewed.')
-                                || (isRevoked && 'Access was revoked from your provider account.')
-                                || (isFailed && 'Connection failed. Please try reconnecting.')
-                                || item.description || ''}
-                            </p>
+                            {/* Status Indicator Badge */}
+                            <span
+                              style={{
+                                fontSize: '0.72rem',
+                                padding: '3px 9px',
+                                borderRadius: '6px',
+                                whiteSpace: 'nowrap',
+                                fontWeight: '600',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                background: isConnected
+                                  ? 'rgba(46,213,115,0.12)'
+                                  : isSyncingNow
+                                  ? 'rgba(88,166,255,0.12)'
+                                  : isConfigReq
+                                  ? 'rgba(210,153,34,0.12)'
+                                  : (isExpired || isReauthReq || isFailed)
+                                  ? 'rgba(248,81,73,0.12)'
+                                  : isConnecting
+                                  ? 'rgba(88,166,255,0.12)'
+                                  : 'rgba(139,148,158,0.1)',
+                                color: isConnected
+                                  ? '#2ed573'
+                                  : isSyncingNow
+                                  ? '#58a6ff'
+                                  : isConfigReq
+                                  ? '#d29922'
+                                  : (isExpired || isReauthReq || isFailed)
+                                  ? '#f85149'
+                                  : isConnecting
+                                  ? '#58a6ff'
+                                  : '#8b949e',
+                                border: `1px solid ${
+                                  isConnected
+                                    ? 'rgba(46,213,115,0.25)'
+                                    : isSyncingNow
+                                    ? 'rgba(88,166,255,0.25)'
+                                    : isConfigReq
+                                    ? 'rgba(210,153,34,0.25)'
+                                    : (isExpired || isReauthReq || isFailed)
+                                    ? 'rgba(248,81,73,0.25)'
+                                    : 'rgba(48,54,61,0.4)'
+                                }`,
+                              }}
+                            >
+                              {isConnected
+                                ? '● Connected'
+                                : isSyncingNow
+                                ? '● Syncing...'
+                                : isConfigReq
+                                ? '🔧 Configuration required'
+                                : isExpired
+                                ? '⚠ Token Expired'
+                                : isReauthReq
+                                ? '⚠ Reauth required'
+                                : isFailed
+                                ? '⚠ Connection error'
+                                : isConnecting
+                                ? '● Connecting...'
+                                : isDisconnected
+                                ? '○ Disconnected'
+                                : '○ Not Connected'}
+                            </span>
+                          </div>
 
-                            {/* Capability Chips */}
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '8px' }}>
-                              {caps.slice(0, 5).map((cap, ci) => (
-                                <span key={ci} style={{
-                                  padding: '2px 6px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: '600',
-                                  background: 'rgba(255,255,255,0.03)', color: '#8b949e',
-                                  border: '1px solid rgba(48,54,61,0.3)',
-                                }}>{cap}</span>
-                              ))}
+                          {/* Description */}
+                          <p style={{ margin: '0 0 12px', color: '#8b949e', fontSize: '0.78rem', lineHeight: '1.45' }}>
+                            {isConfigReq
+                              ? `Developer credentials required in environment (.env).`
+                              : isExpired || isReauthReq
+                              ? 'Authorization has expired. Please reauthenticate this connection.'
+                              : isFailed
+                              ? 'Connection error. Please verify authorization and reconnect.'
+                              : item.description || 'Normalized integration layer for Universal API.'}
+                          </p>
+
+                          {/* Capability Chips */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '10px' }}>
+                            {caps.map((cap, ci) => (
+                              <span
+                                key={ci}
+                                style={{
+                                  padding: '2px 7px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.68rem',
+                                  fontWeight: '600',
+                                  background: 'rgba(255,255,255,0.04)',
+                                  color: '#c9d1d9',
+                                  border: '1px solid rgba(48,54,61,0.4)',
+                                }}
+                              >
+                                {cap}
+                              </span>
+                            ))}
+                          </div>
+
+                          {/* Synced Record Statistics */}
+                          {isConnected && counts && (
+                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '6px', fontSize: '0.74rem' }}>
+                              {(counts.contacts || 0) > 0 && <span style={{ color: '#58a6ff' }}>📇 {counts.contacts} contacts</span>}
+                              {(counts.companies || 0) > 0 && <span style={{ color: '#a78bfa' }}>🏢 {counts.companies} companies</span>}
+                              {(counts.deals || 0) > 0 && <span style={{ color: '#2ed573' }}>💰 {counts.deals} deals</span>}
+                              {lastSync && <span style={{ color: '#8b949e' }}>🕒 {lastSync}</span>}
                             </div>
-
-                            {/* Synced Counts & Last Sync (only when connected) */}
-                            {isConnected && counts && (
-                              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '6px', fontSize: '0.74rem' }}>
-                                {counts.contacts > 0 && <span style={{ color: '#58a6ff' }}>📇 {counts.contacts} contacts</span>}
-                                {counts.companies > 0 && <span style={{ color: '#a78bfa' }}>🏢 {counts.companies} companies</span>}
-                                {counts.deals > 0 && <span style={{ color: '#2ed573' }}>💰 {counts.deals} deals</span>}
-                                {lastSync && <span style={{ color: '#484f58' }}>🕐 {lastSync}</span>}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Action Buttons */}
-                          <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-                            {isComingSoon ? (
-                              <button disabled style={{
-                                width: '100%', padding: '8px', background: 'rgba(33,38,45,0.3)',
-                                border: '1px solid rgba(48,54,61,0.3)', color: '#484f58',
-                                borderRadius: '6px', fontSize: '0.78rem', fontWeight: '600', cursor: 'not-allowed',
-                              }}>Coming Soon</button>
-                            ) : isMock ? (
-                              <button disabled style={{
-                                width: '100%', padding: '8px', background: 'rgba(139,92,246,0.08)',
-                                border: '1px solid rgba(139,92,246,0.2)', color: '#a78bfa',
-                                borderRadius: '6px', fontSize: '0.78rem', fontWeight: '600', cursor: 'not-allowed',
-                              }}>● Sandbox Active</button>
-                            ) : isConnected ? (
-                              <>
-                                <button onClick={() => handleSync(item.provider)} disabled={isSyncing[item.provider]} style={{
-                                  flex: 1, padding: '8px', background: '#21262d',
-                                  border: '1px solid rgba(240,246,255,0.1)', color: '#c9d1d9',
-                                  borderRadius: '6px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer',
-                                  transition: 'all 0.15s',
-                                }}>
-                                  {isSyncing[item.provider] ? '⟳ Syncing...' : '⟳ Sync Now'}
-                                </button>
-                                <button onClick={() => confirmDisconnect(item.provider)} style={{
-                                  padding: '8px 12px', background: 'rgba(248,81,73,0.08)',
-                                  border: '1px solid rgba(248,81,73,0.2)', color: '#f85149',
-                                  borderRadius: '6px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer',
-                                  transition: 'all 0.15s',
-                                }}>Disconnect</button>
-                              </>
-                            ) : isSyncingNow ? (
-                              <button disabled style={{
-                                width: '100%', padding: '8px', background: 'rgba(31,111,235,0.08)',
-                                border: '1px solid rgba(31,111,235,0.2)', color: '#58a6ff',
-                                borderRadius: '6px', fontSize: '0.78rem', fontWeight: '600', cursor: 'not-allowed',
-                              }}>⟳ Synchronizing...</button>
-                            ) : (isExpired || isRevoked || isFailed) ? (
-                              <button onClick={() => handleConnect(item.provider, displayName)} style={{
-                                width: '100%', padding: '8px',
-                                background: 'linear-gradient(135deg, rgba(248,81,73,0.15), rgba(255,122,0,0.15))',
-                                border: '1px solid rgba(248,81,73,0.3)', color: '#ff7b72',
-                                borderRadius: '6px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer',
-                                transition: 'all 0.15s',
-                              }}>⟳ Reconnect {displayName.split(' ')[0]}</button>
-                            ) : (
-                              <button onClick={() => handleConnect(item.provider, displayName)} style={{
-                                width: '100%', padding: '8px',
-                                background: 'linear-gradient(135deg, #1f6feb, #388bfd)',
-                                border: 'none', color: 'white',
-                                borderRadius: '6px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer',
-                                transition: 'all 0.15s',
-                              }}>Connect {displayName.split(' ')[0]}</button>
-                            )}
-                          </div>
+                          )}
                         </div>
-                      );
-                    });
+
+                        {/* Action Buttons */}
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                          {isMock ? (
+                            <>
+                              <button
+                                onClick={() => handleSync('mock')}
+                                disabled={isSyncing['mock']}
+                                style={{
+                                  flex: 1,
+                                  padding: '9px',
+                                  background: 'rgba(139,92,246,0.12)',
+                                  border: '1px solid rgba(139,92,246,0.3)',
+                                  color: '#a78bfa',
+                                  borderRadius: '7px',
+                                  fontSize: '0.78rem',
+                                  fontWeight: '700',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s',
+                                }}
+                              >
+                                {isSyncing['mock'] ? '⟳ Syncing Sandbox...' : '⟳ Sync Demo Data'}
+                              </button>
+                              <button
+                                onClick={() => setSelectedIntegrationDetails(item)}
+                                style={{
+                                  padding: '9px 12px',
+                                  background: 'rgba(255,255,255,0.05)',
+                                  border: '1px solid rgba(48,54,61,0.5)',
+                                  color: '#c9d1d9',
+                                  borderRadius: '7px',
+                                  fontSize: '0.78rem',
+                                  fontWeight: '600',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Manage
+                              </button>
+                            </>
+                          ) : isConnected ? (
+                            <>
+                              <button
+                                onClick={() => handleSync(item.provider)}
+                                disabled={isSyncing[item.provider]}
+                                style={{
+                                  flex: 1,
+                                  padding: '9px',
+                                  background: '#21262d',
+                                  border: '1px solid rgba(240,246,255,0.15)',
+                                  color: '#e6edf3',
+                                  borderRadius: '7px',
+                                  fontSize: '0.78rem',
+                                  fontWeight: '600',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s',
+                                }}
+                              >
+                                {isSyncing[item.provider] ? '⟳ Syncing...' : '⟳ Sync Now'}
+                              </button>
+                              <button
+                                onClick={() => setSelectedIntegrationDetails(item)}
+                                style={{
+                                  padding: '9px 12px',
+                                  background: 'rgba(255,255,255,0.05)',
+                                  border: '1px solid rgba(48,54,61,0.5)',
+                                  color: '#c9d1d9',
+                                  borderRadius: '7px',
+                                  fontSize: '0.78rem',
+                                  fontWeight: '600',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Manage
+                              </button>
+                              <button
+                                onClick={() => confirmDisconnect(item.provider)}
+                                style={{
+                                  padding: '9px 12px',
+                                  background: 'rgba(248,81,73,0.08)',
+                                  border: '1px solid rgba(248,81,73,0.25)',
+                                  color: '#f85149',
+                                  borderRadius: '7px',
+                                  fontSize: '0.78rem',
+                                  fontWeight: '600',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Disconnect
+                              </button>
+                            </>
+                          ) : isConfigReq ? (
+                            <button
+                              onClick={() => setSetupGuideModal(item)}
+                              style={{
+                                width: '100%',
+                                padding: '9px',
+                                background: 'rgba(210,153,34,0.12)',
+                                border: '1px solid rgba(210,153,34,0.3)',
+                                color: '#d29922',
+                                borderRadius: '7px',
+                                fontSize: '0.78rem',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s',
+                              }}
+                            >
+                              🔧 Configure Credentials
+                            </button>
+                          ) : isExpired || isReauthReq || isFailed ? (
+                            <button
+                              onClick={() => handleConnect(item.provider, displayName)}
+                              style={{
+                                width: '100%',
+                                padding: '9px',
+                                background: 'linear-gradient(135deg, rgba(248,81,73,0.2), rgba(255,122,0,0.2))',
+                                border: '1px solid rgba(248,81,73,0.35)',
+                                color: '#ff7b72',
+                                borderRadius: '7px',
+                                fontSize: '0.78rem',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s',
+                              }}
+                            >
+                              ⟳ Reconnect {displayName.split(' ')[0]}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleConnect(item.provider, displayName)}
+                              style={{
+                                width: '100%',
+                                padding: '9px',
+                                background: 'linear-gradient(135deg, #1f6feb, #388bfd)',
+                                border: 'none',
+                                color: 'white',
+                                borderRadius: '7px',
+                                fontSize: '0.78rem',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s',
+                              }}
+                            >
+                              Connect {displayName.split(' ')[0]}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  });
                 })()}
               </div>
             </div>
@@ -6035,7 +6291,208 @@ run();`}</pre>
           </div>
         )}
 
-        {/* Global Toast (Relocated to bottom-left to make space for AI Widget) */}
+        {/* Integration Details Modal */}
+        {selectedIntegrationDetails && (() => {
+          const item = selectedIntegrationDetails;
+          const isConnected = item.status === 'CONNECTED' || item.status === 'Connected';
+          const counts = item.syncedCounts;
+          return (
+            <div style={{ position: 'fixed', inset: 0, zIndex: 1001, background: 'rgba(5,7,10,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+              <div style={{ background: '#161b22', border: '1px solid rgba(48,54,61,0.8)', borderRadius: '16px', padding: '28px', maxWidth: '520px', width: '100%', boxShadow: '0 16px 48px rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(88,166,255,0.12)', border: '1px solid rgba(88,166,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: '800', color: '#58a6ff' }}>
+                      {item.displayName ? item.displayName.substring(0, 2).toUpperCase() : 'IN'}
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, color: '#e6edf3', fontSize: '1.15rem', fontWeight: '800' }}>{item.displayName}</h3>
+                      <span style={{ fontSize: '0.72rem', color: '#8b949e', textTransform: 'capitalize' }}>{item.category} Platform · {item.oauthVersion || 'OAuth 2.0'}</span>
+                    </div>
+                  </div>
+                  <button onClick={() => setSelectedIntegrationDetails(null)} style={{ background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: 'rgba(13,17,23,0.6)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '10px', padding: '16px' }}>
+                  <div>
+                    <span style={{ color: '#8b949e', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase' }}>Status</span>
+                    <div style={{ color: isConnected ? '#2ed573' : '#d29922', fontSize: '0.85rem', fontWeight: '700', marginTop: '2px' }}>
+                      {isConnected ? '● Connected' : item.status}
+                    </div>
+                  </div>
+                  <div>
+                    <span style={{ color: '#8b949e', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase' }}>Connected Account</span>
+                    <div style={{ color: '#e6edf3', fontSize: '0.82rem', fontFamily: 'monospace', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {item.connectedAccount || 'Default Workspace'}
+                    </div>
+                  </div>
+                  <div>
+                    <span style={{ color: '#8b949e', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase' }}>Connected Date</span>
+                    <div style={{ color: '#c9d1d9', fontSize: '0.78rem', marginTop: '2px' }}>
+                      {item.connectedAt ? new Date(item.connectedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}
+                    </div>
+                  </div>
+                  <div>
+                    <span style={{ color: '#8b949e', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase' }}>Last Sync</span>
+                    <div style={{ color: '#c9d1d9', fontSize: '0.78rem', marginTop: '2px' }}>
+                      {item.lastSyncedAt ? new Date(item.lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Never'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Scopes */}
+                {item.scopes && item.scopes.length > 0 && (
+                  <div>
+                    <span style={{ display: 'block', color: '#8b949e', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', marginBottom: '8px' }}>Authorized Scopes</span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {item.scopes.map((s, si) => (
+                        <span key={si} style={{ padding: '3px 8px', borderRadius: '4px', background: 'rgba(56,139,253,0.1)', color: '#58a6ff', border: '1px solid rgba(56,139,253,0.25)', fontSize: '0.7rem', fontFamily: 'monospace' }}>
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Statistics */}
+                {counts && (
+                  <div>
+                    <span style={{ display: 'block', color: '#8b949e', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', marginBottom: '8px' }}>Synced Gateway Statistics</span>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                      <div style={{ background: 'rgba(22,27,34,0.4)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                        <div style={{ color: '#58a6ff', fontSize: '1.2rem', fontWeight: '800' }}>{counts.contacts || 0}</div>
+                        <div style={{ color: '#8b949e', fontSize: '0.72rem' }}>Contacts</div>
+                      </div>
+                      <div style={{ background: 'rgba(22,27,34,0.4)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                        <div style={{ color: '#a78bfa', fontSize: '1.2rem', fontWeight: '800' }}>{counts.companies || 0}</div>
+                        <div style={{ color: '#8b949e', fontSize: '0.72rem' }}>Companies</div>
+                      </div>
+                      <div style={{ background: 'rgba(22,27,34,0.4)', border: '1px solid rgba(48,54,61,0.5)', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                        <div style={{ color: '#2ed573', fontSize: '1.2rem', fontWeight: '800' }}>{counts.deals || 0}</div>
+                        <div style={{ color: '#8b949e', fontSize: '0.72rem' }}>Deals</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                  <button
+                    onClick={() => {
+                      const p = item.provider;
+                      setSelectedIntegrationDetails(null);
+                      handleSync(p);
+                    }}
+                    style={{ flex: 1, padding: '10px', background: '#21262d', border: '1px solid rgba(240,246,255,0.15)', color: '#e6edf3', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}
+                  >
+                    ⟳ Sync Now
+                  </button>
+                  {item.provider !== 'mock' && (
+                    <>
+                      <button
+                        onClick={() => {
+                          const p = item.provider;
+                          const name = item.displayName;
+                          setSelectedIntegrationDetails(null);
+                          handleConnect(p, name);
+                        }}
+                        style={{ flex: 1, padding: '10px', background: 'rgba(56,139,253,0.12)', border: '1px solid rgba(56,139,253,0.3)', color: '#58a6ff', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}
+                      >
+                        Reconnect
+                      </button>
+                      <button
+                        onClick={() => {
+                          const p = item.provider;
+                          setSelectedIntegrationDetails(null);
+                          confirmDisconnect(p);
+                        }}
+                        style={{ padding: '10px 16px', background: 'rgba(248,81,73,0.08)', border: '1px solid rgba(248,81,73,0.25)', color: '#f85149', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}
+                      >
+                        Disconnect
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Developer Setup Guide Modal */}
+        {setupGuideModal && (() => {
+          const item = setupGuideModal;
+          const p = item.provider.toLowerCase();
+          const prefix = p === 'outlook_mail' || p === 'outlook_calendar' || p === 'teams' ? 'MICROSOFT' : p === 'google_calendar' ? 'GOOGLE' : p.toUpperCase();
+          const sampleEnv = `# ${item.displayName} OAuth Credentials in Backend/.env
+${prefix}_CLIENT_ID=your_${p}_client_id
+${prefix}_CLIENT_SECRET=your_${p}_client_secret
+${prefix}_REDIRECT_URI=http://localhost:3000/api/v1/integrations/${p}/callback`;
+
+          return (
+            <div style={{ position: 'fixed', inset: 0, zIndex: 1001, background: 'rgba(5,7,10,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+              <div style={{ background: '#161b22', border: '1px solid rgba(210,153,34,0.4)', borderRadius: '16px', padding: '28px', maxWidth: '540px', width: '100%', boxShadow: '0 16px 48px rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ margin: 0, color: '#e6edf3', fontSize: '1.1rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    🔧 Developer Setup Guide: {item.displayName}
+                  </h3>
+                  <button onClick={() => setSetupGuideModal(null)} style={{ background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+                </div>
+
+                <p style={{ margin: 0, color: '#c9d1d9', fontSize: '0.82rem', lineHeight: '1.5' }}>
+                  To connect live production or sandbox accounts for <strong>{item.displayName}</strong>, set up your OAuth App credentials in your server's <code>Backend/.env</code> file.
+                </p>
+
+                <div style={{ background: '#0d1117', border: '1px solid rgba(48,54,61,0.8)', borderRadius: '8px', padding: '14px', position: 'relative' }}>
+                  <pre style={{ margin: 0, color: '#58a6ff', fontSize: '0.75rem', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                    {sampleEnv}
+                  </pre>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  {item.docsUrl && (
+                    <a
+                      href={item.docsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#58a6ff', fontSize: '0.78rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      📖 Official {item.displayName} Developer Portal ↗
+                    </a>
+                  )}
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(sampleEnv);
+                      showToast('📋 Configuration template copied to clipboard!');
+                    }}
+                    style={{ padding: '6px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(48,54,61,0.6)', color: '#c9d1d9', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}
+                  >
+                    Copy Template
+                  </button>
+                </div>
+
+                <div style={{ borderTop: '1px solid rgba(48,54,61,0.5)', paddingTop: '16px', display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSetupGuideModal(null);
+                      setCredentialModal({ provider: item.provider, displayName: item.displayName, accountUserId: '', apiKey: '', portalDomain: '' });
+                    }}
+                    style={{ flex: 1, padding: '10px', background: 'rgba(33,38,45,0.6)', border: '1px solid rgba(48,54,61,0.8)', color: '#c9d1d9', borderRadius: '8px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer' }}
+                  >
+                    Enter API Key Directly
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSetupGuideModal(null)}
+                    style={{ padding: '10px 20px', background: '#21262d', border: '1px solid rgba(240,246,255,0.15)', color: '#e6edf3', borderRadius: '8px', fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer' }}
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {toast && (
           <div style={{
             position: 'fixed', bottom: '24px', left: '24px',

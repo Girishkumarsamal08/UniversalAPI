@@ -1,23 +1,66 @@
 // Integration Service — OAuth flow and normalization sync coordinator
-// Refactored to use provider-metadata registry and oauth-config objects
-// instead of hardcoded if/else chains.
 
 import prisma from '../../database/prisma.client';
 import { getProviderAdapter } from '../../providers/provider.registry';
 import { IntegrationDTO, OAuthUrlResponse, SyncResponse, IntegrationStatus, DisconnectOptions } from './integration.types';
 import { PROVIDER_REGISTRY, getProviderMeta, getAllProviderKeys } from './provider-metadata';
-import { getOAuthConfig, supportsOAuth } from './oauth-config';
+import { getOAuthConfig } from './oauth-config';
 import { memoryLogs } from '../../middleware/logging.middleware';
 import { logger } from '../../utils/logger';
+import crypto from 'crypto';
+
+// In-memory OAuth state cache for CSRF protection (valid for 15 minutes)
+const oauthStateCache = new Map<string, { userId: string; createdAt: number }>();
+
+// Clean up expired states periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [state, data] of oauthStateCache.entries()) {
+    if (now - data.createdAt > 15 * 60 * 1000) {
+      oauthStateCache.delete(state);
+    }
+  }
+}, 5 * 60 * 1000);
+
+// ────────────────────────────────────────────────────────────────
+// CREDENTIAL CONFIGURATION CHECK
+// ────────────────────────────────────────────────────────────────
+
+/**
+ * Check if the required OAuth credentials for a provider are present in .env
+ */
+export const checkProviderConfiguration = (provider: string): { isConfigured: boolean; missingKeys: string[] } => {
+  const p = provider.toLowerCase();
+  if (p === 'mock') {
+    return { isConfigured: true, missingKeys: [] };
+  }
+
+  const config = getOAuthConfig(p);
+  if (!config) {
+    return { isConfigured: false, missingKeys: ['OAUTH_CONFIG_MISSING'] };
+  }
+
+  const missingKeys: string[] = [];
+  const clientId = process.env[config.clientIdEnvKey];
+  const clientSecret = process.env[config.clientSecretEnvKey];
+
+  if (!clientId || clientId.trim() === '' || clientId.startsWith('your_')) {
+    missingKeys.push(config.clientIdEnvKey);
+  }
+  if (!clientSecret || clientSecret.trim() === '' || clientSecret.startsWith('your_')) {
+    missingKeys.push(config.clientSecretEnvKey);
+  }
+
+  return {
+    isConfigured: missingKeys.length === 0,
+    missingKeys,
+  };
+};
 
 // ────────────────────────────────────────────────────────────────
 // LOGGING HELPER
 // ────────────────────────────────────────────────────────────────
 
-/**
- * Log integration lifecycle events to the ApiLog table (or memory fallback).
- * Every connect, sync, refresh, disconnect, and revoke action generates a log.
- */
 export const logIntegrationEvent = async (
   userId: string,
   event: string,
@@ -31,7 +74,7 @@ export const logIntegrationEvent = async (
     statusCode: isError ? 400 : 200,
     responseTime: 0,
     ipAddress: '127.0.0.1',
-    userAgent: 'Universal-API-Agent/1.0',
+    userAgent: 'Universal-API-Gateway/1.0',
     errorMessage: errorMsg || null,
   };
 
@@ -40,7 +83,6 @@ export const logIntegrationEvent = async (
       data: logData,
     });
   } catch (err) {
-    // If DB is offline, store in the global memory logs
     memoryLogs.unshift({
       id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       ...logData,
@@ -51,26 +93,34 @@ export const logIntegrationEvent = async (
 };
 
 // ────────────────────────────────────────────────────────────────
-// GET INTEGRATIONS (enriched with provider metadata + synced counts)
+// GET INTEGRATIONS (enriched with status, config check, and counts)
 // ────────────────────────────────────────────────────────────────
 
 export const getIntegrationsForUser = async (userId: string, organizationId?: string): Promise<IntegrationDTO[]> => {
   let userIds = [userId];
   if (organizationId) {
-    const orgMembers = await prisma.orgMember.findMany({
-      where: { organizationId },
-      select: { userId: true },
-    });
-    if (orgMembers.length > 0) {
-      userIds = orgMembers.map(m => m.userId);
+    try {
+      const orgMembers = await prisma.orgMember.findMany({
+        where: { organizationId },
+        select: { userId: true },
+      });
+      if (orgMembers.length > 0) {
+        userIds = orgMembers.map(m => m.userId);
+      }
+    } catch (err) {
+      // Fallback
     }
   }
 
-  const dbConnections = await prisma.integration.findMany({
-    where: { userId: { in: userIds } },
-  });
+  let dbConnections: any[] = [];
+  try {
+    dbConnections = await prisma.integration.findMany({
+      where: { userId: { in: userIds } },
+    });
+  } catch (err) {
+    logger.warn('Failed to query integration connections from DB:', err);
+  }
 
-  // Use the provider registry as the canonical list
   const allProviderKeys = getAllProviderKeys();
 
   // Fetch synced record counts per provider for the org
@@ -103,9 +153,46 @@ export const getIntegrationsForUser = async (userId: string, organizationId?: st
     const meta = getProviderMeta(providerKey);
     if (!meta) return null;
 
-    const conn = dbConnections.find((c) => c.provider === providerKey);
     const isMock = providerKey === 'mock';
-    const currentStatus: IntegrationStatus = (conn?.status as IntegrationStatus) || (isMock ? 'Connected' : 'Not Connected');
+    const conn = dbConnections.find((c) => c.provider === providerKey);
+    const { isConfigured, missingKeys } = checkProviderConfiguration(providerKey);
+
+    let currentStatus: IntegrationStatus = 'NOT_CONNECTED';
+
+    if (isMock) {
+      currentStatus = 'CONNECTED';
+    } else if (conn) {
+      const dbStatus = conn.status;
+      if (dbStatus === 'Connected') {
+        if (conn.expiresAt && new Date() >= new Date(conn.expiresAt)) {
+          currentStatus = 'TOKEN_EXPIRED';
+        } else {
+          currentStatus = 'CONNECTED';
+        }
+      } else if (dbStatus === 'Syncing') {
+        currentStatus = 'SYNCING';
+      } else if (dbStatus === 'Connecting') {
+        currentStatus = 'CONNECTING';
+      } else if (dbStatus === 'Expired' || dbStatus === 'TOKEN_EXPIRED') {
+        currentStatus = 'TOKEN_EXPIRED';
+      } else if (dbStatus === 'Reauth Required' || dbStatus === 'REAUTH_REQUIRED') {
+        currentStatus = 'REAUTH_REQUIRED';
+      } else if (dbStatus === 'Revoked' || dbStatus === 'REVOKED') {
+        currentStatus = 'REVOKED';
+      } else if (dbStatus === 'Connection Failed' || dbStatus === 'CONNECTION_ERROR') {
+        currentStatus = 'CONNECTION_ERROR';
+      } else if (dbStatus === 'Disconnected' || dbStatus === 'DISCONNECTED') {
+        currentStatus = 'DISCONNECTED';
+      } else {
+        currentStatus = 'CONNECTED';
+      }
+    } else {
+      if (!isConfigured) {
+        currentStatus = 'CONFIGURATION_REQUIRED';
+      } else {
+        currentStatus = 'NOT_CONNECTED';
+      }
+    }
 
     return {
       id: conn?.id || `new-${providerKey}`,
@@ -113,22 +200,23 @@ export const getIntegrationsForUser = async (userId: string, organizationId?: st
       category: meta.category,
       displayName: meta.displayName,
       status: currentStatus,
+      isConfigured,
+      missingEnvKeys: missingKeys,
       connectedAt: conn?.connectedAt?.toISOString() || (isMock ? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() : new Date().toISOString()),
       lastSyncedAt: conn?.lastSyncedAt?.toISOString() || (isMock ? new Date(Date.now() - 10 * 60 * 1000).toISOString() : undefined),
-      connectedAccount: (conn as any)?.connectedAccount || (isMock ? `mock@unifiedcrm.io` : undefined),
+      connectedAccount: (conn as any)?.connectedAccount || (isMock ? `sandbox@universalapi.io` : undefined),
       capabilities: meta.capabilities,
       oauthVersion: meta.oauthVersion,
       syncedCounts: syncedCountsByProvider[providerKey] || (isMock ? { contacts: 12, companies: 5, deals: 8 } : undefined),
       expiresAt: conn?.expiresAt?.toISOString(),
-      comingSoon: meta.comingSoon,
       scopes: meta.scopes,
+      docsUrl: meta.docsUrl,
     } as IntegrationDTO;
   }).filter(Boolean) as IntegrationDTO[];
 };
 
 // ────────────────────────────────────────────────────────────────
-// GENERATE OAUTH AUTHORIZATION URL
-// Uses oauth-config.ts lookup instead of if/else chains
+// GENERATE OAUTH AUTHORIZATION URL (with CSRF state)
 // ────────────────────────────────────────────────────────────────
 
 export const generateAuthorizationUrl = async (
@@ -139,41 +227,65 @@ export const generateAuthorizationUrl = async (
   const config = getOAuthConfig(p);
 
   if (!config) {
-    // Provider doesn't use OAuth — fall back to simulation
-    logger.info(`No OAuth config for ${provider}. Falling back to simulation mode.`);
-    return {
-      provider,
-      authorizationUrl: `http://localhost:3000/api/v1/integrations/${p}/oauth-simulate?userId=${userId}`,
-    };
+    throw new Error(`No OAuth configuration found for provider: ${provider}`);
   }
 
-  // Read credentials from env using the config's env key names
+  // Generate random CSRF state token and cache it
+  const stateToken = `${p}_${crypto.randomBytes(16).toString('hex')}`;
+  oauthStateCache.set(stateToken, { userId, createdAt: Date.now() });
+
   const clientId = process.env[config.clientIdEnvKey] || '';
   const redirectUri = process.env[config.redirectUriEnvKey] || `http://localhost:3000/api/v1/integrations/${p}/callback`;
 
-  // If Client ID is placeholder, route to local simulation endpoint
+  // If credentials are not set in .env, route to simulated consent page for local testing
   if (!clientId || clientId.startsWith('your_')) {
-    logger.info(`OAuth credentials not configured for ${provider}. Falling back to simulation mode.`);
+    logger.info(`OAuth credentials not configured in .env for ${provider}. Routing to simulated OAuth authorization.`);
     return {
       provider,
-      authorizationUrl: `http://localhost:3000/api/v1/integrations/${p}/oauth-simulate?userId=${userId}`,
+      authorizationUrl: `http://localhost:3000/api/v1/integrations/${p}/oauth-simulate?state=${stateToken}&userId=${userId}`,
+      state: stateToken,
     };
   }
 
-  // Build real OAuth authorization URL
   const scopeStr = config.scopes.join(config.scopeDelimiter || ' ');
-  const query = new URLSearchParams({
+  const queryParams: Record<string, string> = {
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: 'code',
-    state: userId,
+    state: stateToken,
     ...(scopeStr ? { scope: scopeStr } : {}),
-  });
+    ...(config.extraAuthParams || {}),
+  };
+
+  const query = new URLSearchParams(queryParams);
 
   return {
     provider,
     authorizationUrl: `${config.authBaseUrl}?${query.toString()}`,
+    state: stateToken,
   };
+};
+
+// ────────────────────────────────────────────────────────────────
+// VALIDATE CSRF STATE
+// ────────────────────────────────────────────────────────────────
+
+export const validateOAuthState = (state: string): { valid: boolean; userId?: string } => {
+  if (!state) return { valid: false };
+
+  // Check state cache
+  const cached = oauthStateCache.get(state);
+  if (cached) {
+    oauthStateCache.delete(state); // Prevent replay attacks
+    return { valid: true, userId: cached.userId };
+  }
+
+  // If state was directly a userId (fallback for development simulation)
+  if (state.startsWith('usr-') || state.startsWith('dev-')) {
+    return { valid: true, userId: state };
+  }
+
+  return { valid: false };
 };
 
 // ────────────────────────────────────────────────────────────────
@@ -187,26 +299,30 @@ export const exchangeCodeForToken = async (
 ): Promise<void> => {
   const p = provider.toLowerCase();
   logger.info(`Exchanging OAuth authorization code for provider: ${provider}`);
-  
+
   let accessToken = '';
   let refreshToken = '';
   let expiresAt: Date | undefined;
 
-  // Check if simulated code
-  if (code.startsWith('mock-')) {
+  if (code.startsWith('mock-') || code.startsWith('sim-')) {
+    // Simulated token generation for development
     accessToken = `mock-access-token-${p}-${Date.now()}`;
     refreshToken = `mock-refresh-token-${p}-${Date.now()}`;
-    expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiry
+    expiresAt = new Date(Date.now() + 60 * 60 * 1000);
   } else {
-    // Real Token Exchange — lookup config
+    // Real OAuth exchange
     const config = getOAuthConfig(p);
     if (!config) {
       throw new Error(`No OAuth configuration found for provider: ${provider}`);
     }
 
-    const clientId = process.env[config.clientIdEnvKey]!;
-    const clientSecret = process.env[config.clientSecretEnvKey]!;
-    const redirectUri = process.env[config.redirectUriEnvKey]!;
+    const clientId = process.env[config.clientIdEnvKey];
+    const clientSecret = process.env[config.clientSecretEnvKey];
+    const redirectUri = process.env[config.redirectUriEnvKey] || `http://localhost:3000/api/v1/integrations/${p}/callback`;
+
+    if (!clientId || !clientSecret) {
+      throw new Error(`Missing OAuth credentials (${config.clientIdEnvKey} or ${config.clientSecretEnvKey}) in environment.`);
+    }
 
     try {
       const res = await fetch(config.tokenUrl, {
@@ -224,12 +340,14 @@ export const exchangeCodeForToken = async (
       });
 
       if (!res.ok) {
-        throw new Error(`Token exchange failed with status: ${res.status}`);
+        const errText = await res.text();
+        throw new Error(`Token exchange failed (${res.status}): ${errText}`);
       }
 
       const body: any = await res.json();
       accessToken = body.access_token;
-      refreshToken = body.refresh_token;
+      refreshToken = body.refresh_token || '';
+
       if (body.expires_in) {
         expiresAt = new Date(Date.now() + body.expires_in * 1000);
       } else if (config.tokenExpirySeconds) {
@@ -241,14 +359,14 @@ export const exchangeCodeForToken = async (
     }
   }
 
-  // Save tokens to DB
+  // Save tokens to DB (prisma proxy automatically handles AES-256 encryption)
   await prisma.integration.upsert({
     where: {
       userId_provider: { userId, provider: p },
     },
     update: {
       accessToken,
-      refreshToken,
+      refreshToken: refreshToken || undefined,
       expiresAt,
       status: 'Connected',
       connectedAt: new Date(),
@@ -257,7 +375,7 @@ export const exchangeCodeForToken = async (
       userId,
       provider: p,
       accessToken,
-      refreshToken,
+      refreshToken: refreshToken || undefined,
       expiresAt,
       status: 'Connected',
       connectedAt: new Date(),
@@ -268,7 +386,7 @@ export const exchangeCodeForToken = async (
 };
 
 // ────────────────────────────────────────────────────────────────
-// TOKEN REFRESH (with coalescing to prevent duplicate refreshes)
+// TOKEN REFRESH
 // ────────────────────────────────────────────────────────────────
 
 const refreshLocks = new Map<string, Promise<void>>();
@@ -277,9 +395,7 @@ export const refreshAccessToken = async (provider: string, userId: string): Prom
   const p = provider.toLowerCase();
   const lockKey = `${userId}:${p}`;
 
-  // Coalesce duplicate requests for the same integration refresh
   if (refreshLocks.has(lockKey)) {
-    logger.info(`Token refresh already in progress for ${lockKey}, waiting...`);
     return refreshLocks.get(lockKey);
   }
 
@@ -293,7 +409,6 @@ export const refreshAccessToken = async (provider: string, userId: string): Prom
     }
 
     if (conn.refreshToken.startsWith('mock-')) {
-      // Generate new mock tokens
       const nextExpires = new Date(Date.now() + 60 * 60 * 1000);
       await prisma.integration.update({
         where: { id: conn.id },
@@ -307,7 +422,6 @@ export const refreshAccessToken = async (provider: string, userId: string): Prom
       return;
     }
 
-    // Real Token Refresh — lookup config
     const config = getOAuthConfig(p);
     if (!config) {
       throw new Error(`No OAuth configuration found for provider: ${provider}`);
@@ -349,9 +463,9 @@ export const refreshAccessToken = async (provider: string, userId: string): Prom
     } catch (err: any) {
       await prisma.integration.update({
         where: { id: conn.id },
-        data: { status: 'Expired' },
+        data: { status: 'Reauth Required' },
       });
-      await logIntegrationEvent(userId, `Token Expired for ${provider}`, true, err.message);
+      await logIntegrationEvent(userId, `Token Refresh Failed / Reauth Required for ${provider}`, true, err.message);
       throw err;
     }
   })();
@@ -365,47 +479,29 @@ export const refreshAccessToken = async (provider: string, userId: string): Prom
 };
 
 // ────────────────────────────────────────────────────────────────
-// PROVIDER-SIDE TOKEN REVOCATION
-// Calls the provider's revoke endpoint if one exists
+// PROVIDER TOKEN REVOCATION
 // ────────────────────────────────────────────────────────────────
 
 const revokeProviderToken = async (provider: string, token: string): Promise<void> => {
   const config = getOAuthConfig(provider);
-  if (!config?.revokeUrl) {
-    logger.info(`Provider ${provider} does not have a revoke endpoint. Skipping provider-side revocation.`);
-    return;
-  }
-
-  // Don't attempt revocation for mock tokens
-  if (token.startsWith('mock-')) {
-    logger.info(`Skipping provider-side revocation for mock token.`);
+  if (!config?.revokeUrl || token.startsWith('mock-')) {
     return;
   }
 
   try {
     logger.info(`Revoking token at provider ${provider}: ${config.revokeUrl}`);
-    const res = await fetch(config.revokeUrl, {
+    await fetch(config.revokeUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ token }),
     });
-
-    if (res.ok) {
-      logger.info(`Provider-side revocation succeeded for ${provider}`);
-    } else {
-      logger.warn(`Provider-side revocation returned status ${res.status} for ${provider}`);
-    }
   } catch (err: any) {
-    // Revocation failure should NOT block the disconnect flow
     logger.warn(`Provider-side revocation failed for ${provider}: ${err.message}`);
   }
 };
 
 // ────────────────────────────────────────────────────────────────
-// DISCONNECT / REVOKE CONNECTION
-// Supports both Policy A (delete data) and Policy B (retain data)
+// DISCONNECT / REVOKE
 // ────────────────────────────────────────────────────────────────
 
 export const revokeConnection = async (
@@ -416,24 +512,20 @@ export const revokeConnection = async (
   const p = provider.toLowerCase();
   const retainData = options?.retainData ?? false;
 
-  // Step 1: Look up the connection to get the token for revocation
   const conn = await prisma.integration.findUnique({
     where: { userId_provider: { userId, provider: p } },
   });
 
-  // Step 2: Attempt provider-side token revocation
   if (conn?.accessToken) {
     await revokeProviderToken(p, conn.accessToken);
   }
 
-  // Step 3: Delete the integration record
   if (conn) {
     await prisma.integration.delete({
       where: { id: conn.id },
     });
   }
 
-  // Step 4: Handle synced data based on retainData flag
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { memberships: { select: { organizationId: true } } },
@@ -441,30 +533,18 @@ export const revokeConnection = async (
 
   const organizationId = user?.memberships[0]?.organizationId;
   if (organizationId && !retainData) {
-    // Policy A: Delete all synced records from this provider
-    await prisma.contact.deleteMany({
-      where: { provider: p, organizationId },
-    });
-    await prisma.company.deleteMany({
-      where: { provider: p, organizationId },
-    });
-    await prisma.deal.deleteMany({
-      where: { provider: p, organizationId },
-    });
-    logger.info(`Deleted synced data for provider ${p} in org ${organizationId}`);
-  } else if (organizationId && retainData) {
-    // Policy B: Data is retained (no deletion) — records remain with their provider tag
-    // Users can distinguish them by provider field and the integration being disconnected
-    logger.info(`Retaining synced data for provider ${p} in org ${organizationId} (retainData=true)`);
+    await prisma.contact.deleteMany({ where: { provider: p, organizationId } });
+    await prisma.company.deleteMany({ where: { provider: p, organizationId } });
+    await prisma.deal.deleteMany({ where: { provider: p, organizationId } });
+    logger.info(`Purged synced data for provider ${p} in org ${organizationId}`);
   }
 
-  // Step 5: Log the event
   const action = retainData ? 'Disconnected (Data Retained)' : 'Disconnected & Data Purged';
   await logIntegrationEvent(userId, `${provider.charAt(0).toUpperCase() + provider.slice(1)} ${action}`);
 };
 
 // ────────────────────────────────────────────────────────────────
-// SYNC PROVIDER DATA (fetch + normalize + upsert)
+// DATA SYNC & NORMALIZATION COORDINATOR
 // ────────────────────────────────────────────────────────────────
 
 export const syncProviderData = async (
@@ -474,35 +554,36 @@ export const syncProviderData = async (
 ): Promise<SyncResponse> => {
   const p = provider.toLowerCase();
   const syncStart = Date.now();
-  logger.info(`Starting CRM sync for ${provider} under organization: ${organizationId}`);
+  logger.info(`Starting sync for ${provider} under org: ${organizationId}`);
 
-  // Fetch connection details
-  const conn = await prisma.integration.findUnique({
-    where: { userId_provider: { userId, provider: p } },
-  });
+  let conn = null;
+  if (p !== 'mock') {
+    conn = await prisma.integration.findUnique({
+      where: { userId_provider: { userId, provider: p } },
+    });
 
-  if (!conn) {
-    throw new Error(`Integration for ${provider} is not connected.`);
-  }
+    if (!conn) {
+      throw new Error(`Integration for ${provider} is not connected.`);
+    }
 
-  // Update status to syncing
-  await prisma.integration.update({
-    where: { id: conn.id },
-    data: { status: 'Syncing' },
-  });
-
-  await logIntegrationEvent(userId, `${provider.charAt(0).toUpperCase() + provider.slice(1)} Sync Started`);
-
-  try {
     // Check and refresh token if expired
-    if (conn.expiresAt && new Date() >= conn.expiresAt) {
+    if (conn.expiresAt && new Date() >= new Date(conn.expiresAt)) {
       logger.info(`Access token expired for ${provider}. Refreshing...`);
       await refreshAccessToken(p, userId);
     }
 
+    await prisma.integration.update({
+      where: { id: conn.id },
+      data: { status: 'Syncing' },
+    });
+  }
+
+  await logIntegrationEvent(userId, `${provider.charAt(0).toUpperCase() + provider.slice(1)} Sync Started`);
+
+  try {
     const adapter = await getProviderAdapter(p, userId);
-    
-    // Fetch and Normalize Contacts
+
+    // Fetch and Normalize Contacts / Items
     const contacts = await adapter.getContacts();
     for (const c of contacts) {
       await prisma.contact.upsert({
@@ -531,7 +612,7 @@ export const syncProviderData = async (
       });
     }
 
-    // Fetch and Normalize Companies
+    // Fetch and Normalize Companies / Workspaces
     const companies = await adapter.getCompanies();
     for (const co of companies) {
       await prisma.company.upsert({
@@ -560,7 +641,7 @@ export const syncProviderData = async (
       });
     }
 
-    // Fetch and Normalize Deals (only if supported)
+    // Fetch Deals if applicable
     let syncedDealsCount = 0;
     try {
       const deals = await adapter.getDeals();
@@ -589,20 +670,22 @@ export const syncProviderData = async (
         });
       }
       syncedDealsCount = deals.length;
-    } catch (dealErr: any) {
-      logger.warn(`Failed to sync deals for ${provider}: ${dealErr.message}`);
+    } catch {
+      // Non-CRM providers return 0 deals cleanly
     }
 
     const lastSyncedAt = new Date();
     const duration = Date.now() - syncStart;
 
-    await prisma.integration.update({
-      where: { id: conn.id },
-      data: {
-        status: 'Connected',
-        lastSyncedAt,
-      },
-    });
+    if (conn) {
+      await prisma.integration.update({
+        where: { id: conn.id },
+        data: {
+          status: 'Connected',
+          lastSyncedAt,
+        },
+      });
+    }
 
     await logIntegrationEvent(
       userId,
@@ -621,18 +704,16 @@ export const syncProviderData = async (
       duration,
     };
   } catch (err: any) {
-    await prisma.integration.update({
-      where: { id: conn.id },
-      data: { status: 'Connection Failed' },
-    });
+    if (conn) {
+      await prisma.integration.update({
+        where: { id: conn.id },
+        data: { status: 'Connection Failed' },
+      });
+    }
     await logIntegrationEvent(userId, `${provider.charAt(0).toUpperCase() + provider.slice(1)} Sync Failed`, true, err.message);
     throw err;
   }
 };
-
-// ────────────────────────────────────────────────────────────────
-// GET PROVIDER METADATA (public — for frontend catalog)
-// ────────────────────────────────────────────────────────────────
 
 export const getProviderMetadataList = () => {
   return PROVIDER_REGISTRY;
@@ -645,38 +726,32 @@ export const getProviderMetadataList = () => {
 
 export const startProactiveRefreshScheduler = (): void => {
   logger.info('⏰ Proactive OAuth Token Refresh Scheduler initialized');
-  
-  // Run checks every 5 minutes
+
   setInterval(async () => {
     try {
-      logger.info('Running proactive token refresh scan...');
       const fifteenMinutesFromNow = new Date(Date.now() + 15 * 60 * 1000);
-      
+
       const expiringConnections = await prisma.integration.findMany({
         where: {
           status: 'Connected',
           expiresAt: {
             lte: fifteenMinutesFromNow,
-            gt: new Date() // not already expired
-          }
-        }
+            gt: new Date(),
+          },
+        },
       });
-      
-      if (expiringConnections.length === 0) {
-        logger.debug('No expiring OAuth connections found in this scan.');
-        return;
-      }
-      
-      logger.info(`Found ${expiringConnections.length} integrations requiring proactive refresh.`);
-      
+
+      if (expiringConnections.length === 0) return;
+
       for (const conn of expiringConnections) {
         logger.info(`Proactively refreshing token for user ${conn.userId}, provider ${conn.provider}`);
         await refreshAccessToken(conn.provider, conn.userId).catch((err) => {
-          logger.error(`Proactive token refresh failed for user ${conn.userId}, provider ${conn.provider}:`, err);
+          logger.error(`Proactive refresh failed for ${conn.provider}:`, err);
         });
       }
     } catch (err) {
-      logger.error('Error occurred in proactive token refresh worker loop:', err);
+      // Background worker safe catch
     }
   }, 5 * 60 * 1000);
 };
+

@@ -1,14 +1,10 @@
-// Provider Metadata Registry — single source of truth for all integration provider definitions
-// This replaces hardcoded provider arrays previously scattered across integration.service.ts and App.jsx
+// Provider Metadata Registry — Single source of truth for MVP integrations
+// Strictly focused on CRM, Communication, Email, Calendar, and Productivity.
 
 import { ProviderCategory, ProviderMetadata } from './integration.types';
 
 /**
- * Master registry of every provider the platform knows about.
- * Each entry defines display metadata, category, capabilities, and availability.
- *
- * Adding a new provider? Just add an entry here — the frontend and backend
- * both derive their provider list from this file.
+ * Master registry of the 12 MVP providers + Developer Sandbox Mock.
  */
 export const PROVIDER_REGISTRY: ProviderMetadata[] = [
   // ────────────────────────────────────────────
@@ -18,51 +14,53 @@ export const PROVIDER_REGISTRY: ProviderMetadata[] = [
     provider: 'hubspot',
     displayName: 'HubSpot',
     category: 'crm',
-    description: 'Sync contacts, companies, deals and lifecycle pipelines.',
+    description: 'Sync contacts, companies, deals, pipelines, and lifecycle activities.',
     capabilities: ['Contacts', 'Companies', 'Deals', 'Pipelines', 'Activities'],
     oauthVersion: 'OAuth 2.0',
-    comingSoon: false,
     scopes: ['contacts', 'crm.objects.contacts.read', 'crm.objects.contacts.write', 'crm.objects.companies.read', 'crm.objects.companies.write'],
+    clientIdEnvKey: 'HUBSPOT_CLIENT_ID',
+    clientSecretEnvKey: 'HUBSPOT_CLIENT_SECRET',
+    redirectUriEnvKey: 'HUBSPOT_REDIRECT_URI',
+    docsUrl: 'https://developers.hubspot.com/docs/api/overview',
   },
   {
     provider: 'salesforce',
     displayName: 'Salesforce',
     category: 'crm',
-    description: 'Sync Leads, Contacts, Accounts, Opportunities and enterprise pipelines.',
+    description: 'Sync Leads, Contacts, Accounts, Opportunities, and enterprise cases.',
     capabilities: ['Leads', 'Contacts', 'Accounts', 'Opportunities', 'Cases'],
     oauthVersion: 'OAuth 2.0',
-    comingSoon: false,
-    scopes: ['api', 'refresh_token'],
+    scopes: ['api', 'refresh_token', 'offline_access'],
+    clientIdEnvKey: 'SALESFORCE_CLIENT_ID',
+    clientSecretEnvKey: 'SALESFORCE_CLIENT_SECRET',
+    redirectUriEnvKey: 'SALESFORCE_REDIRECT_URI',
+    docsUrl: 'https://developer.salesforce.com/docs',
   },
   {
     provider: 'pipedrive',
     displayName: 'Pipedrive',
     category: 'crm',
-    description: 'Sync Persons, Organizations, Deals and Sales pipelines.',
+    description: 'Sync Persons, Organizations, Deals, Pipelines, and Sales activities.',
     capabilities: ['Persons', 'Organizations', 'Deals', 'Pipelines', 'Activities'],
     oauthVersion: 'OAuth 2.0',
-    comingSoon: false,
-    scopes: ['deals:read', 'contacts:read', 'organizations:read'],
+    scopes: ['contacts:full', 'deals:full'],
+    clientIdEnvKey: 'PIPEDRIVE_CLIENT_ID',
+    clientSecretEnvKey: 'PIPEDRIVE_CLIENT_SECRET',
+    redirectUriEnvKey: 'PIPEDRIVE_REDIRECT_URI',
+    docsUrl: 'https://developers.pipedrive.com/docs/api/v1',
   },
   {
     provider: 'zoho',
     displayName: 'Zoho CRM',
     category: 'crm',
-    description: 'Sync Zoho CRM contacts, deals, accounts and workflow automation.',
-    capabilities: ['Contacts', 'Deals', 'Accounts', 'Workflows'],
+    description: 'Sync Zoho CRM contacts, leads, accounts, deals, pipelines, and activities.',
+    capabilities: ['Contacts', 'Leads', 'Accounts', 'Deals', 'Pipelines', 'Activities'],
     oauthVersion: 'OAuth 2.0',
-    comingSoon: false,
     scopes: ['ZohoCRM.modules.ALL'],
-  },
-  {
-    provider: 'dynamics365',
-    displayName: 'Microsoft Dynamics 365',
-    category: 'crm',
-    description: 'Sync enterprise CRM data including leads, accounts and opportunities.',
-    capabilities: ['Leads', 'Accounts', 'Opportunities', 'Cases'],
-    oauthVersion: 'OAuth 2.0',
-    comingSoon: true,
-    scopes: [],
+    clientIdEnvKey: 'ZOHO_CLIENT_ID',
+    clientSecretEnvKey: 'ZOHO_CLIENT_SECRET',
+    redirectUriEnvKey: 'ZOHO_REDIRECT_URI',
+    docsUrl: 'https://www.zoho.com/crm/developer/docs/api/v2/',
   },
 
   // ────────────────────────────────────────────
@@ -72,21 +70,27 @@ export const PROVIDER_REGISTRY: ProviderMetadata[] = [
     provider: 'slack',
     displayName: 'Slack',
     category: 'communication',
-    description: 'Real-time team notification webhooks and CRM deal alerts.',
-    capabilities: ['Channel Messages', 'Deal Alerts', 'Notifications'],
+    description: 'Sync workspace channels, messages, interactive alerts, and webhook notifications.',
+    capabilities: ['Channels', 'Messages', 'Notifications', 'Webhooks'],
     oauthVersion: 'OAuth 2.0',
-    comingSoon: false,
-    scopes: ['channels:read', 'chat:write', 'incoming-webhook'],
+    scopes: ['channels:read', 'chat:write', 'channels:history', 'incoming-webhook'],
+    clientIdEnvKey: 'SLACK_CLIENT_ID',
+    clientSecretEnvKey: 'SLACK_CLIENT_SECRET',
+    redirectUriEnvKey: 'SLACK_REDIRECT_URI',
+    docsUrl: 'https://api.slack.com/',
   },
   {
-    provider: 'discord',
-    displayName: 'Discord',
+    provider: 'teams',
+    displayName: 'Microsoft Teams',
     category: 'communication',
-    description: 'Community and team notifications via Discord bot webhooks.',
-    capabilities: ['Webhooks', 'Bot Messages', 'Channel Alerts'],
-    oauthVersion: 'OAuth 2.0',
-    comingSoon: true,
-    scopes: [],
+    description: 'Enterprise Microsoft Graph sync for Teams, channels, chats, and notification alerts.',
+    capabilities: ['Teams', 'Channels', 'Messages', 'Notifications'],
+    oauthVersion: 'Microsoft OAuth',
+    scopes: ['Team.ReadBasic.All', 'Channel.ReadBasic.All', 'Chat.ReadWrite'],
+    clientIdEnvKey: 'MICROSOFT_CLIENT_ID',
+    clientSecretEnvKey: 'MICROSOFT_CLIENT_SECRET',
+    redirectUriEnvKey: 'MICROSOFT_REDIRECT_URI',
+    docsUrl: 'https://learn.microsoft.com/en-us/graph/teams-concept-overview',
   },
 
   // ────────────────────────────────────────────
@@ -94,23 +98,29 @@ export const PROVIDER_REGISTRY: ProviderMetadata[] = [
   // ────────────────────────────────────────────
   {
     provider: 'gmail',
-    displayName: 'Gmail & Google Workspace',
+    displayName: 'Gmail / Google Workspace',
     category: 'email',
-    description: 'Sync customer email threads, outreach logs, and delivery tracking.',
-    capabilities: ['Email Threads', 'Messages', 'Attachments', 'Labels'],
-    oauthVersion: 'OAuth 2.0',
-    comingSoon: false,
-    scopes: ['https://www.googleapis.com/auth/gmail.readonly'],
+    description: 'Sync customer email threads, messages, attachments, and mailbox labels.',
+    capabilities: ['Emails', 'Threads', 'Attachments', 'Labels'],
+    oauthVersion: 'Google OAuth 2.0',
+    scopes: ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send'],
+    clientIdEnvKey: 'GOOGLE_CLIENT_ID',
+    clientSecretEnvKey: 'GOOGLE_CLIENT_SECRET',
+    redirectUriEnvKey: 'GOOGLE_REDIRECT_URI',
+    docsUrl: 'https://developers.google.com/gmail/api',
   },
   {
     provider: 'outlook_mail',
-    displayName: 'Microsoft Outlook Email',
+    displayName: 'Microsoft Outlook',
     category: 'email',
-    description: 'Enterprise Office 365 email sync and thread normalization.',
-    capabilities: ['Email Threads', 'Messages', 'Attachments', 'Folders'],
-    oauthVersion: 'OAuth 2.0',
-    comingSoon: false,
+    description: 'Enterprise Office 365 email sync, message threads, attachments, and folders.',
+    capabilities: ['Emails', 'Threads', 'Attachments', 'Folders'],
+    oauthVersion: 'Microsoft OAuth',
     scopes: ['Mail.Read', 'Mail.ReadWrite'],
+    clientIdEnvKey: 'MICROSOFT_CLIENT_ID',
+    clientSecretEnvKey: 'MICROSOFT_CLIENT_SECRET',
+    redirectUriEnvKey: 'MICROSOFT_REDIRECT_URI',
+    docsUrl: 'https://learn.microsoft.com/en-us/graph/api/resources/mail-api-overview',
   },
 
   // ────────────────────────────────────────────
@@ -120,141 +130,73 @@ export const PROVIDER_REGISTRY: ProviderMetadata[] = [
     provider: 'google_calendar',
     displayName: 'Google Calendar',
     category: 'calendar',
-    description: 'Sync meeting schedules, sales demos, and calendar availability.',
+    description: 'Sync meeting schedules, availability calendars, invites, and reminders.',
     capabilities: ['Events', 'Availability', 'Scheduling', 'Reminders'],
-    oauthVersion: 'OAuth 2.0',
-    comingSoon: false,
-    scopes: ['https://www.googleapis.com/auth/calendar.readonly'],
+    oauthVersion: 'Google OAuth 2.0',
+    scopes: ['https://www.googleapis.com/auth/calendar.readonly', 'https://www.googleapis.com/auth/calendar.events'],
+    clientIdEnvKey: 'GOOGLE_CLIENT_ID',
+    clientSecretEnvKey: 'GOOGLE_CLIENT_SECRET',
+    redirectUriEnvKey: 'GOOGLE_REDIRECT_URI',
+    docsUrl: 'https://developers.google.com/calendar/api',
   },
   {
     provider: 'outlook_calendar',
-    displayName: 'Outlook 365 Calendar',
+    displayName: 'Outlook Calendar',
     category: 'calendar',
-    description: 'Enterprise Microsoft 365 calendar scheduling & event sync.',
+    description: 'Enterprise Microsoft 365 calendar scheduling, availability, and event sync.',
     capabilities: ['Events', 'Availability', 'Scheduling', 'Reminders'],
-    oauthVersion: 'OAuth 2.0',
-    comingSoon: false,
+    oauthVersion: 'Microsoft OAuth',
     scopes: ['Calendars.Read', 'Calendars.ReadWrite'],
-  },
-
-  // ────────────────────────────────────────────
-  // PAYMENTS
-  // ────────────────────────────────────────────
-  {
-    provider: 'stripe',
-    displayName: 'Stripe',
-    category: 'payments',
-    description: 'Sync payments, subscriptions, invoices and customer billing.',
-    capabilities: ['Payments', 'Subscriptions', 'Invoices', 'Customers'],
-    oauthVersion: 'OAuth 2.0 / API Key',
-    comingSoon: false,
-    scopes: ['read_write'],
+    clientIdEnvKey: 'MICROSOFT_CLIENT_ID',
+    clientSecretEnvKey: 'MICROSOFT_CLIENT_SECRET',
+    redirectUriEnvKey: 'MICROSOFT_REDIRECT_URI',
+    docsUrl: 'https://learn.microsoft.com/en-us/graph/api/resources/calendar',
   },
   {
-    provider: 'razorpay',
-    displayName: 'Razorpay Gateway',
-    category: 'payments',
-    description: 'Sync merchant payments, UPI transfers, subscriptions and payout ledgers.',
-    capabilities: ['Payments', 'Customers', 'Orders', 'Refunds'],
-    oauthVersion: 'API Key',
-    comingSoon: false,
-    scopes: [],
-  },
-  {
-    provider: 'paypal',
-    displayName: 'PayPal',
-    category: 'payments',
-    description: 'Global transaction processing, merchant payouts and subscription ledgers.',
-    capabilities: ['Payments', 'Payouts', 'Subscriptions', 'Disputes'],
+    provider: 'calendly',
+    displayName: 'Calendly',
+    category: 'calendar',
+    description: 'Sync scheduled appointments, invitee answers, event types, and booking slots.',
+    capabilities: ['Events', 'Invitees', 'Availability', 'Scheduling'],
     oauthVersion: 'OAuth 2.0',
-    comingSoon: false,
-    scopes: [],
+    scopes: ['default'],
+    clientIdEnvKey: 'CALENDLY_CLIENT_ID',
+    clientSecretEnvKey: 'CALENDLY_CLIENT_SECRET',
+    redirectUriEnvKey: 'CALENDLY_REDIRECT_URI',
+    docsUrl: 'https://developer.calendly.com/',
   },
 
   // ────────────────────────────────────────────
-  // E-COMMERCE
+  // PRODUCTIVITY
   // ────────────────────────────────────────────
   {
-    provider: 'shopify',
-    displayName: 'Shopify',
-    category: 'commerce',
-    description: 'Sync customer profiles, e-commerce orders and product catalogs.',
-    capabilities: ['Customers', 'Orders', 'Products', 'Inventory'],
+    provider: 'notion',
+    displayName: 'Notion',
+    category: 'productivity',
+    description: 'Sync workspace pages, databases, content blocks, and organization users.',
+    capabilities: ['Pages', 'Databases', 'Blocks', 'Users'],
     oauthVersion: 'OAuth 2.0',
-    comingSoon: false,
-    scopes: ['read_customers', 'read_orders', 'read_products'],
-  },
-  {
-    provider: 'woocommerce',
-    displayName: 'WooCommerce',
-    category: 'commerce',
-    description: 'WordPress e-commerce order management and product sync.',
-    capabilities: ['Customers', 'Orders', 'Products', 'Coupons'],
-    oauthVersion: 'API Key',
-    comingSoon: true,
     scopes: [],
+    clientIdEnvKey: 'NOTION_CLIENT_ID',
+    clientSecretEnvKey: 'NOTION_CLIENT_SECRET',
+    redirectUriEnvKey: 'NOTION_REDIRECT_URI',
+    docsUrl: 'https://developers.notion.com/',
   },
 
   // ────────────────────────────────────────────
-  // COMING SOON — Specialized integrations
-  // ────────────────────────────────────────────
-  {
-    provider: 'online_banking',
-    displayName: 'Corporate Net Banking',
-    category: 'payments',
-    description: 'Sync IMPS/NEFT/RTGS wire transfers and corporate bank statements.',
-    capabilities: ['Wire Transfers', 'Statements', 'Reconciliation'],
-    oauthVersion: 'Bank-Specific API',
-    comingSoon: true,
-    scopes: [],
-  },
-  {
-    provider: 'amazon',
-    displayName: 'Amazon Selling Partner',
-    category: 'commerce',
-    description: 'Merchant fulfillment orders, FBA tracking and inventory ledgers.',
-    capabilities: ['Orders', 'Fulfillment', 'Inventory', 'FBA'],
-    oauthVersion: 'SP-API / LWA',
-    comingSoon: true,
-    scopes: [],
-  },
-  {
-    provider: 'flipkart',
-    displayName: 'Flipkart Marketplace',
-    category: 'commerce',
-    description: 'Sync Flipkart merchant orders, customer purchases and inventory.',
-    capabilities: ['Orders', 'Products', 'Inventory', 'Returns'],
-    oauthVersion: 'Seller API',
-    comingSoon: true,
-    scopes: [],
-  },
-
-  // ────────────────────────────────────────────
-  // AUTOMATION
-  // ────────────────────────────────────────────
-  {
-    provider: 'zapier',
-    displayName: 'Zapier',
-    category: 'automation',
-    description: 'Trigger automated Zapier flows on new contacts, deals and order sync events.',
-    capabilities: ['Webhooks', 'Triggers', 'Automated Flows'],
-    oauthVersion: 'Webhook / API Key',
-    comingSoon: false,
-    scopes: [],
-  },
-
-  // ────────────────────────────────────────────
-  // DEVELOPER SANDBOX
+  // DEVELOPER SANDBOX (MOCK)
   // ────────────────────────────────────────────
   {
     provider: 'mock',
     displayName: 'Developer Sandbox (Mock)',
     category: 'crm',
-    description: 'Simulated static CRM data for rapid testing without credentials.',
-    capabilities: ['Contacts', 'Companies', 'Deals'],
-    oauthVersion: 'Mock Mode',
-    comingSoon: false,
+    description: 'Simulated CRM dataset for rapid local testing without external API credentials.',
+    capabilities: ['Contacts', 'Companies', 'Deals', 'Activities'],
+    oauthVersion: 'Developer Sandbox',
     scopes: [],
+    clientIdEnvKey: '',
+    clientSecretEnvKey: '',
+    redirectUriEnvKey: '',
   },
 ];
 
@@ -262,11 +204,11 @@ export const PROVIDER_REGISTRY: ProviderMetadata[] = [
  * Lookup a single provider's metadata
  */
 export const getProviderMeta = (provider: string): ProviderMetadata | undefined => {
-  return PROVIDER_REGISTRY.find(p => p.provider === provider.toLowerCase());
+  return PROVIDER_REGISTRY.find(p => p.provider.toLowerCase() === provider.toLowerCase());
 };
 
 /**
- * Get all provider keys (for default listing)
+ * Get all provider keys (for listing)
  */
 export const getAllProviderKeys = (): string[] => {
   return PROVIDER_REGISTRY.map(p => p.provider);
@@ -280,14 +222,12 @@ export const getProvidersByCategory = (category: ProviderCategory): ProviderMeta
 };
 
 /**
- * All categories in display order
+ * Categories in display order
  */
 export const CATEGORY_ORDER: { id: ProviderCategory; label: string }[] = [
-  { id: 'crm', label: 'CRM Platforms' },
+  { id: 'crm', label: 'CRM' },
   { id: 'communication', label: 'Communication' },
   { id: 'email', label: 'Email' },
   { id: 'calendar', label: 'Calendar' },
-  { id: 'payments', label: 'Payments' },
-  { id: 'commerce', label: 'E-Commerce' },
-  { id: 'automation', label: 'Automation' },
+  { id: 'productivity', label: 'Productivity' },
 ];
