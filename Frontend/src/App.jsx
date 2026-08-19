@@ -6283,18 +6283,39 @@ run();`}</pre>
             notion: '#000000',
             mock: '#8b5cf6',
           };
+          const providerLogoUrls = {
+            hubspot: '/hubspot.jpg',
+            salesforce: '/Salesforce.png',
+            pipedrive: '/pipedrive.jpeg',
+            zoho: '/zoho.png',
+            slack: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/slack.svg',
+            teams: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/microsoftteams.svg',
+            gmail: '/gmail.jpg',
+            outlook_mail: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/microsoftoutlook.svg',
+            google_calendar: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/googlecalendar.svg',
+            outlook_calendar: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/microsoftoutlook.svg',
+            calendly: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/calendly.svg',
+            notion: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/notion.svg',
+          };
           const color = brandColors[item.provider] || '#8b5cf6';
+          const pLogo = providerLogoUrls[item.provider];
           return (
             <div style={{ position: 'fixed', inset: 0, zIndex: 1001, background: 'rgba(5,7,10,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
               <div style={{ background: '#161b22', border: '1px solid rgba(48,54,61,0.8)', borderRadius: '16px', padding: '28px', maxWidth: '440px', width: '100%', boxShadow: '0 16px 48px rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', gap: '18px', textAlign: 'center' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #1f6feb, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800', fontSize: '1.1rem' }}>
-                      🛡️
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {/* Official Universal API Logo */}
+                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(56,139,253,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', boxSizing: 'border-box' }}>
+                      <img src="/logo.png" alt="Universal API" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                     </div>
-                    <span style={{ color: '#8b949e', fontSize: '1.1rem' }}>⇄</span>
-                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800', fontSize: '0.85rem' }}>
-                      {item.displayName ? item.displayName.substring(0, 2).toUpperCase() : 'APP'}
+                    <span style={{ color: '#8b949e', fontSize: '1.2rem', fontWeight: '700' }}>⇄</span>
+                    {/* Provider Brand Logo */}
+                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: `${color}18`, border: `1px solid ${color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', boxSizing: 'border-box', overflow: 'hidden' }}>
+                      {pLogo ? (
+                        <img src={pLogo} alt={item.displayName} style={{ width: '100%', height: '100%', objectFit: 'contain', filter: pLogo.endsWith('.svg') ? 'brightness(0) invert(1)' : 'none' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                      ) : (
+                        <span style={{ color: color, fontWeight: '800', fontSize: '0.85rem' }}>{item.displayName ? item.displayName.substring(0, 2).toUpperCase() : 'APP'}</span>
+                      )}
                     </div>
                   </div>
                   <button onClick={() => setAuthConsentModal(null)} style={{ background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
@@ -6362,13 +6383,48 @@ run();`}</pre>
           const item = selectedIntegrationDetails;
           const isConnected = item.status === 'CONNECTED' || item.status === 'Connected';
           const counts = item.syncedCounts;
+          const brandColors = {
+            hubspot: '#ff7a00',
+            salesforce: '#00a1e0',
+            pipedrive: '#26b860',
+            zoho: '#d14836',
+            slack: '#4a154b',
+            teams: '#5059c9',
+            gmail: '#ea4335',
+            outlook_mail: '#0078d4',
+            google_calendar: '#4285f4',
+            outlook_calendar: '#0078d4',
+            calendly: '#006bff',
+            notion: '#000000',
+            mock: '#8b5cf6',
+          };
+          const providerLogoUrls = {
+            hubspot: '/hubspot.jpg',
+            salesforce: '/Salesforce.png',
+            pipedrive: '/pipedrive.jpeg',
+            zoho: '/zoho.png',
+            slack: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/slack.svg',
+            teams: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/microsoftteams.svg',
+            gmail: '/gmail.jpg',
+            outlook_mail: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/microsoftoutlook.svg',
+            google_calendar: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/googlecalendar.svg',
+            outlook_calendar: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/microsoftoutlook.svg',
+            calendly: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/calendly.svg',
+            notion: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/notion.svg',
+          };
+          const color = brandColors[item.provider] || '#8b5cf6';
+          const pLogo = providerLogoUrls[item.provider];
           return (
             <div style={{ position: 'fixed', inset: 0, zIndex: 1001, background: 'rgba(5,7,10,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
               <div style={{ background: '#161b22', border: '1px solid rgba(48,54,61,0.8)', borderRadius: '16px', padding: '28px', maxWidth: '520px', width: '100%', boxShadow: '0 16px 48px rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(88,166,255,0.12)', border: '1px solid rgba(88,166,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: '800', color: '#58a6ff' }}>
-                      {item.displayName ? item.displayName.substring(0, 2).toUpperCase() : 'IN'}
+                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: `${color}18`, border: `1px solid ${color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', boxSizing: 'border-box', overflow: 'hidden' }}>
+                      {pLogo ? (
+                        <img src={pLogo} alt={item.displayName} style={{ width: '100%', height: '100%', objectFit: 'contain', filter: pLogo.endsWith('.svg') ? 'brightness(0) invert(1)' : 'none' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                      ) : (
+                        <span style={{ color: color, fontWeight: '800', fontSize: '0.85rem' }}>{item.displayName ? item.displayName.substring(0, 2).toUpperCase() : 'APP'}</span>
+                      )}
                     </div>
                     <div>
                       <h3 style={{ margin: 0, color: '#e6edf3', fontSize: '1.15rem', fontWeight: '800' }}>{item.displayName}</h3>
