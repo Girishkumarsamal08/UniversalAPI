@@ -1224,7 +1224,96 @@ export default function App() {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState('');
-  const [activeTab, setActiveTab] = useState('dashboard');
+
+  // Helper to map browser URL path to active tab
+  const getTabFromPath = (path) => {
+    const clean = (path || '').replace(/^\/+/, '').split('/')[0].toLowerCase();
+    const aliasMap = {
+      '': 'dashboard',
+      'home': 'dashboard',
+      'dashboard': 'dashboard',
+      'integration': 'integrations',
+      'integrations': 'integrations',
+      'contact': 'contacts',
+      'contacts': 'contacts',
+      'company': 'companies',
+      'companies': 'companies',
+      'project': 'projects',
+      'projects': 'projects',
+      'ai-document-parser': 'doc-parser',
+      'document-parser': 'doc-parser',
+      'doc-parser': 'doc-parser',
+      'request-logs': 'logs',
+      'logs': 'logs',
+      'analytics': 'analytics',
+      'platform-config': 'config',
+      'config': 'config',
+      'feature-matrix': 'feature-matrix',
+      'api-playground': 'api-playground',
+      'playground': 'api-playground',
+      'flow': 'flow',
+      'end-to-end-flow': 'flow',
+      'explorer': 'explorer',
+      'normalization-explorer': 'explorer',
+      'architecture': 'architecture',
+      'challenges': 'challenges',
+      'technical-challenges': 'challenges',
+      'dx': 'dx',
+      'developer-experience': 'dx',
+      'roadmap': 'roadmap',
+      'future-roadmap': 'roadmap',
+      'team': 'team',
+      'team-ownership': 'team',
+      'enterprise': 'enterprise',
+      'enterprise-specs': 'enterprise',
+      'docs': 'docs',
+      'documentation': 'docs',
+      'cto-erp': 'cto-erp',
+      'erp-inventory': 'erp-inventory',
+      'erp-finance': 'erp-finance',
+      'erp-hr': 'erp-hr',
+      'erp-orders': 'erp-orders',
+    };
+    return aliasMap[clean] || 'dashboard';
+  };
+
+  const [activeTab, setActiveTabState] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return getTabFromPath(window.location.pathname);
+    }
+    return 'dashboard';
+  });
+
+  const setActiveTab = (tabId, updateUrl = true) => {
+    setActiveTabState(tabId);
+    if (updateUrl && typeof window !== 'undefined') {
+      const targetPath = tabId === 'dashboard' ? '/dashboard' : `/${tabId}`;
+      if (window.location.pathname !== targetPath) {
+        window.history.pushState({ tab: tabId }, '', targetPath);
+      }
+    }
+  };
+
+  // Sync with browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const tab = getTabFromPath(window.location.pathname);
+      setActiveTabState(tab);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Ensure initial URL reflects the active tab
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const currentPath = window.location.pathname;
+      if (currentPath === '/' || currentPath === '') {
+        window.history.replaceState({ tab: activeTab }, '', `/${activeTab}`);
+      }
+    }
+  }, []);
+
   const [isLoggedIn, setIsLoggedIn] = useState(!!AUTH_TOKEN);
   const [registering, setRegistering] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
