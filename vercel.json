@@ -1,13 +1,12 @@
 {
-  "cleanUrls": true,
-  "outputDirectory": "dist",
+  "version": 2,
   "rewrites": [
     {
-      "source": "/api/v1/:path*",
-      "destination": "https://universalapi-sa2a.onrender.com/api/v1/:path*"
+      "source": "/api/v1/:match*",
+      "destination": "https://universalapi-sa2a.onrender.com/api/v1/:match*"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/:path*",
       "destination": "/index.html"
     }
   ]
