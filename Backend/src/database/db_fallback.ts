@@ -56,6 +56,17 @@ class DatabaseFallback {
     const defaultData: FallbackSchema = {
       users: [
         {
+          id: 'dev-mock-user-girish',
+          email: 'biswajitasamal8342@gmail.com',
+          name: 'Girish Kumar Samal',
+          passwordHash: '$2a$10$i4ZSt3DqKXwh0Zg86qhQhuONJteh8GHU4QuuiUHitY480jY.ROSAC', // mock bcrypt hash for Mickey@123
+          role: 'CTO',
+          department: 'Engineering',
+          status: 'APPROVED',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
           id: 'dev-mock-user-001',
           email: 'admin@unifiedcrm.io',
           name: 'Admin User',

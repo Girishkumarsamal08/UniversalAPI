@@ -2019,13 +2019,22 @@ export default function App() {
     return () => clearInterval(interval);
   }, [isLoggedIn, showAuth]);
 
-  const handleQuickFill = () => {
-    setLoginForm(prev => ({
-      ...prev,
-      email: 'admin@unifiedcrm.io',
-      password: 'UnifiedCRM2026!Secured'
-    }));
-    showToast('Demo admin credentials filled!', 'success');
+  const handleQuickFill = (type = 'cto') => {
+    if (type === 'admin') {
+      setLoginForm(prev => ({
+        ...prev,
+        email: 'admin@unifiedcrm.io',
+        password: 'UnifiedCRM2026!Secured'
+      }));
+      showToast('Demo Admin credentials filled!', 'success');
+    } else {
+      setLoginForm(prev => ({
+        ...prev,
+        email: 'biswajitasamal8342@gmail.com',
+        password: 'Mickey@123'
+      }));
+      showToast('CTO Girish credentials filled!', 'success');
+    }
   };
 
   useEffect(() => {
@@ -2044,7 +2053,7 @@ export default function App() {
   const handleLogin = async (e) => {
     e.preventDefault(); setLoginError(''); setSuccessMsg(''); setLoginLoading(true);
     try {
-      const res = await api.post('/auth/login', { email: loginForm.email, password: loginForm.password });
+      const res = await api.post('/auth/login', { email: loginForm.email.trim(), password: loginForm.password });
       AUTH_TOKEN = res.data.data.tokens.accessToken;
       localStorage.setItem('unified_token', AUTH_TOKEN);
       localStorage.setItem('unified_user', JSON.stringify(res.data.data.user));
@@ -2937,21 +2946,47 @@ export default function App() {
 
             {/* Click-to-Autofill Quick demo login details inside the form container */}
             {!registering && !forgotMode && (
-              <div
-                onClick={handleQuickFill}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '8px',
-                  padding: '10px 14px', background: 'rgba(31,111,235,0.08)',
-                  border: '1px solid rgba(31,111,235,0.25)', borderRadius: '8px',
-                  fontSize: '0.78rem', color: '#58a6ff', cursor: 'pointer',
-                  marginBottom: '20px', width: '100%', boxSizing: 'border-box',
-                  transition: 'all 0.15s', justifyContent: 'center'
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(31,111,235,0.15)'; e.currentTarget.style.borderColor = '#58a6ff'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(31,111,235,0.08)'; e.currentTarget.style.borderColor = 'rgba(31,111,235,0.25)'; }}
-              >
-                <Zap size={13} color="#58a6ff" />
-                <span>Demo Admin? <strong>Click to Autofill Credentials</strong></span>
+              <div style={{
+                display: 'flex', flexDirection: 'column', gap: '8px',
+                padding: '12px 14px', background: 'rgba(31,111,235,0.08)',
+                border: '1px solid rgba(31,111,235,0.25)', borderRadius: '10px',
+                fontSize: '0.78rem', color: '#58a6ff',
+                marginBottom: '20px', width: '100%', boxSizing: 'border-box'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#8b949e', fontWeight: '600' }}>
+                  <Zap size={13} color="#58a6ff" />
+                  <span>Click to Autofill Demo Credentials:</span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickFill('cto')}
+                    style={{
+                      flex: 1, padding: '7px 10px', background: 'rgba(31,111,235,0.15)',
+                      border: '1px solid rgba(31,111,235,0.4)', borderRadius: '6px',
+                      color: '#58a6ff', fontSize: '0.74rem', fontWeight: '700', cursor: 'pointer',
+                      transition: 'all 0.15s', textAlign: 'center'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(31,111,235,0.3)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(31,111,235,0.15)'; }}
+                  >
+                    👑 CTO Girish
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickFill('admin')}
+                    style={{
+                      flex: 1, padding: '7px 10px', background: 'rgba(139,92,246,0.15)',
+                      border: '1px solid rgba(139,92,246,0.4)', borderRadius: '6px',
+                      color: '#a78bfa', fontSize: '0.74rem', fontWeight: '700', cursor: 'pointer',
+                      transition: 'all 0.15s', textAlign: 'center'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.3)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.15)'; }}
+                  >
+                    🛡️ Demo Admin
+                  </button>
+                </div>
               </div>
             )}
 

@@ -158,13 +158,20 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     if (isDbDown && process.env.NODE_ENV === 'development') {
       const { email, password } = parsed.data;
-      if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
+      const normEmail = email.trim().toLowerCase();
+      const demoPasswords = ['Mickey@123', 'UnifiedCRM2026!Secured', 'Password123', 'admin123'];
+      const demoEmails = ['biswajitasamal8342@gmail.com', 'admin@unifiedcrm.io', 'cto@unifiedcrm.io'];
+
+      if (demoEmails.includes(normEmail) && demoPasswords.includes(password)) {
         const { generateAccessToken, generateRefreshToken } = await import('../services/jwt.service');
         const demoUser = {
           id: 'dev-mock-user-001',
-          email: DEMO_EMAIL,
-          name: 'Admin User',
+          email: normEmail,
+          name: normEmail === 'biswajitasamal8342@gmail.com' || normEmail === 'cto@unifiedcrm.io' ? 'Girish Kumar Samal' : 'Admin User',
           organizationId: 'dev-mock-org-001',
+          role: normEmail === 'biswajitasamal8342@gmail.com' || normEmail === 'cto@unifiedcrm.io' ? 'CTO' : 'Admin',
+          department: 'Engineering',
+          status: 'APPROVED',
         };
         const accessToken  = generateAccessToken(demoUser);
         const refreshToken = generateRefreshToken();
@@ -175,7 +182,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         }, 'Login successful (dev mock mode)');
         return;
       }
-      sendUnauthorized(res, 'Invalid credentials. Use: admin@unifiedcrm.io / Password123');
+      sendUnauthorized(res, 'Invalid credentials. Use biswajitasamal8342@gmail.com / Mickey@123 or admin@unifiedcrm.io / UnifiedCRM2026!Secured');
       return;
     }
 

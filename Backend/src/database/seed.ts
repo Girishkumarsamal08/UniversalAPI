@@ -28,6 +28,7 @@ async function main() {
 
   // Seed users for ALL roles
   const usersToSeed = [
+    { id: 'seed-user-girish-main', name: 'Girish Kumar Samal', email: 'biswajitasamal8342@gmail.com', role: 'CTO', dept: 'Engineering' },
     { id: 'seed-user-cto', name: 'Girish Kumar Samal', email: 'cto@unifiedcrm.io', role: 'CTO', dept: 'Engineering' },
     { id: 'seed-user-ceo', name: 'Alexander Vance', email: 'ceo@unifiedcrm.io', role: 'CEO', dept: 'Executive' },
     { id: 'seed-user-admin', name: 'Admin User', email: 'admin@unifiedcrm.io', role: 'Admin', dept: 'Operations' },

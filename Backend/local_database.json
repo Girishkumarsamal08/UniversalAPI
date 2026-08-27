@@ -1,6 +1,17 @@
 {
   "users": [
     {
+      "id": "seed-user-girish-main",
+      "email": "biswajitasamal8342@gmail.com",
+      "name": "Girish Kumar Samal",
+      "passwordHash": "$2a$10$i4ZSt3DqKXwh0Zg86qhQhuONJteh8GHU4QuuiUHitY480jY.ROSAC",
+      "role": "CTO",
+      "department": "Engineering",
+      "status": "APPROVED",
+      "createdAt": "2026-07-20T00:00:00.000Z",
+      "updatedAt": "2026-07-20T00:00:00.000Z"
+    },
+    {
       "id": "seed-user-cto",
       "email": "cto@unifiedcrm.io",
       "name": "Girish Kumar Samal",
