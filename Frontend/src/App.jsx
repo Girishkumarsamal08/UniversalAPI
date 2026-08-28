@@ -4384,13 +4384,13 @@ export default function App() {
                   };
 
                   const providerLogoUrls = {
-                    hubspot: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/hubspot.svg',
-                    salesforce: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/salesforce.svg',
-                    pipedrive: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/pipedrive.svg',
-                    zoho: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/zoho.svg',
+                    hubspot: '/hubspot.jpg',
+                    salesforce: '/Salesforce.png',
+                    pipedrive: '/pipedrive.jpeg',
+                    zoho: '/zoho.png',
                     slack: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/slack.svg',
                     teams: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/microsoftteams.svg',
-                    gmail: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/gmail.svg',
+                    gmail: '/gmail.jpg',
                     outlook_mail: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/microsoftoutlook.svg',
                     google_calendar: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/googlecalendar.svg',
                     outlook_calendar: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/microsoftoutlook.svg',
