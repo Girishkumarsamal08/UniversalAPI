@@ -15,20 +15,9 @@
       "id": "seed-user-cto",
       "email": "cto@unifiedcrm.io",
       "name": "Girish Kumar Samal",
-      "passwordHash": "$2a$12$1F7ibnUjBcUt1pxH8mtinOoRI.okJpJMwZhbmqDYOAG61eoGnkg2O",
+      "passwordHash": "$2a$10$bMPdlWrre.Bw/F5oztARGOn4aHfL43bP9g35Oo8Vmvx3eZeu.GjZ2",
       "role": "CTO",
       "department": "Engineering",
-      "status": "APPROVED",
-      "createdAt": "2026-07-20T00:00:00.000Z",
-      "updatedAt": "2026-07-20T00:00:00.000Z"
-    },
-    {
-      "id": "seed-user-ceo",
-      "email": "ceo@unifiedcrm.io",
-      "name": "Alexander Vance",
-      "passwordHash": "$2a$12$1F7ibnUjBcUt1pxH8mtinOoRI.okJpJMwZhbmqDYOAG61eoGnkg2O",
-      "role": "CEO",
-      "department": "Executive",
       "status": "APPROVED",
       "createdAt": "2026-07-20T00:00:00.000Z",
       "updatedAt": "2026-07-20T00:00:00.000Z"
@@ -37,97 +26,9 @@
       "id": "seed-user-admin",
       "email": "admin@unifiedcrm.io",
       "name": "Admin User",
-      "passwordHash": "$2a$12$1F7ibnUjBcUt1pxH8mtinOoRI.okJpJMwZhbmqDYOAG61eoGnkg2O",
+      "passwordHash": "$2a$10$bMPdlWrre.Bw/F5oztARGOn4aHfL43bP9g35Oo8Vmvx3eZeu.GjZ2",
       "role": "Admin",
       "department": "Operations",
-      "status": "APPROVED",
-      "createdAt": "2026-07-20T00:00:00.000Z",
-      "updatedAt": "2026-07-20T00:00:00.000Z"
-    },
-    {
-      "id": "seed-user-rhead",
-      "email": "regional.head@unifiedcrm.io",
-      "name": "Marcus Brody",
-      "passwordHash": "$2a$12$1F7ibnUjBcUt1pxH8mtinOoRI.okJpJMwZhbmqDYOAG61eoGnkg2O",
-      "role": "Regional Head",
-      "department": "Strategy",
-      "status": "APPROVED",
-      "createdAt": "2026-07-20T00:00:00.000Z",
-      "updatedAt": "2026-07-20T00:00:00.000Z"
-    },
-    {
-      "id": "seed-user-mgr",
-      "email": "manager@unifiedcrm.io",
-      "name": "Sophia Martinez",
-      "passwordHash": "$2a$12$1F7ibnUjBcUt1pxH8mtinOoRI.okJpJMwZhbmqDYOAG61eoGnkg2O",
-      "role": "Manager",
-      "department": "Product Management",
-      "status": "APPROVED",
-      "createdAt": "2026-07-20T00:00:00.000Z",
-      "updatedAt": "2026-07-20T00:00:00.000Z"
-    },
-    {
-      "id": "seed-user-sdev",
-      "email": "senior.dev@unifiedcrm.io",
-      "name": "Swayamsuchee Mohanty",
-      "passwordHash": "$2a$12$1F7ibnUjBcUt1pxH8mtinOoRI.okJpJMwZhbmqDYOAG61eoGnkg2O",
-      "role": "Senior Developer",
-      "department": "Core Backend",
-      "status": "APPROVED",
-      "createdAt": "2026-07-20T00:00:00.000Z",
-      "updatedAt": "2026-07-20T00:00:00.000Z"
-    },
-    {
-      "id": "seed-user-supp",
-      "email": "support@unifiedcrm.io",
-      "name": "Rohan Verma",
-      "passwordHash": "$2a$12$1F7ibnUjBcUt1pxH8mtinOoRI.okJpJMwZhbmqDYOAG61eoGnkg2O",
-      "role": "Support Engineer",
-      "department": "Technical Support",
-      "status": "APPROVED",
-      "createdAt": "2026-07-20T00:00:00.000Z",
-      "updatedAt": "2026-07-20T00:00:00.000Z"
-    },
-    {
-      "id": "seed-user-sales",
-      "email": "sales@unifiedcrm.io",
-      "name": "David Miller",
-      "passwordHash": "$2a$12$1F7ibnUjBcUt1pxH8mtinOoRI.okJpJMwZhbmqDYOAG61eoGnkg2O",
-      "role": "Sales Lead",
-      "department": "Business Development",
-      "status": "APPROVED",
-      "createdAt": "2026-07-20T00:00:00.000Z",
-      "updatedAt": "2026-07-20T00:00:00.000Z"
-    },
-    {
-      "id": "seed-user-client",
-      "email": "client@unifiedcrm.io",
-      "name": "Client Account Manager",
-      "passwordHash": "$2a$12$1F7ibnUjBcUt1pxH8mtinOoRI.okJpJMwZhbmqDYOAG61eoGnkg2O",
-      "role": "Client",
-      "department": "Partner Relations",
-      "status": "APPROVED",
-      "createdAt": "2026-07-20T00:00:00.000Z",
-      "updatedAt": "2026-07-20T00:00:00.000Z"
-    },
-    {
-      "id": "seed-user-emp",
-      "email": "employee@unifiedcrm.io",
-      "name": "Jordan Hayes",
-      "passwordHash": "$2a$12$1F7ibnUjBcUt1pxH8mtinOoRI.okJpJMwZhbmqDYOAG61eoGnkg2O",
-      "role": "Employee",
-      "department": "Software Quality",
-      "status": "APPROVED",
-      "createdAt": "2026-07-20T00:00:00.000Z",
-      "updatedAt": "2026-07-20T00:00:00.000Z"
-    },
-    {
-      "id": "seed-user-intern",
-      "email": "intern@unifiedcrm.io",
-      "name": "Lucas Scott",
-      "passwordHash": "$2a$12$1F7ibnUjBcUt1pxH8mtinOoRI.okJpJMwZhbmqDYOAG61eoGnkg2O",
-      "role": "Intern",
-      "department": "Engineering",
       "status": "APPROVED",
       "createdAt": "2026-07-20T00:00:00.000Z",
       "updatedAt": "2026-07-20T00:00:00.000Z"
@@ -158,89 +59,8 @@
   "deals": [],
   "apiLogs": [],
   "refreshTokens": [],
-  "projects": [
-    {
-      "id": "proj-mock-001",
-      "name": "Core Sync Portal",
-      "description": "SaaS normalizer synchronization platform API gateway integration.",
-      "organizationId": "org-seed-001",
-      "createdAt": "2026-07-20T00:00:00.000Z",
-      "updatedAt": "2026-07-20T00:00:00.000Z"
-    }
-  ],
+  "projects": [],
   "projectAssignments": [],
   "approvalRequests": [],
-  "documents": [
-    {
-      "id": "doc-universalapi-pdf-seed",
-      "name": "universalapi.pdf",
-      "size": "4391.1 KB",
-      "type": "PDF Contract / Invoice",
-      "category": "Platform Spec PDF",
-      "isBinaryFallback": false,
-      "healthScore": 100,
-      "uploadedAt": "Auto-seeded spec",
-      "rawText": "Universal API Platform\nProject Overview :\nUniversal API Platform is a unified integration layer that enables developers to\ninteract with multiple CRM systems such as HubSpot, Salesforce, and\nPipedrive through a single standardized API.\nObjectives:\nReduce integration complexity\nProvide a unified CRM schema\nEnable secure OAuth connections\nSupport real-time synchronization\nOffer a centralized dashboard\nTech Stack :\nFrontend\nNext.js\nTypeScript\nTailwindCSS\nUniversal API Platform\t1\n\n-- 1 of 10 --\n\nShadCN/UI\nBackend\nNode.js\nExpress.js\nDatabase\nPostgreSQL\nAuthentication\nOAuth 2.0\nJWT\nInfrastructure\nDocker\nRedis\nDeployment\nVercel\nRailway/Render\nCRM Providers\nHubSpot\nSalesforce\nPipedrive\nRole Distribution (Final Team Structure) :\n1. Girish — System Architect + Backend Lead + Security Lead\nPrimary Roles\nSystem Architect\nBackend Engineer\nSecurity Engineer\nUniversal API Platform\t2\n\n-- 2 of 10 --\n\nResponsibilities\nDesign complete architecture\nUnified CRM schema\nAccess & refresh tokens\nAPI Gateway\nAuthentication & Authorization\nCore REST APIs\nDatabase architecture\nSecurity standards\nMulti-tenant design\n2. Swayamsuchee — Integration Engineer + Backend Services\nPrimary Roles\nIntegration Engineer\nAPI Connector Engineer\nResponsibilities\nHubSpot integration\nSalesforce integration\nPipedrive integration\nData mapping\nProvider adapters\nAPI transformation layer\nError handling\nRate limit management\n3. Soujanya — Data Sync Engineer + DevOps Engineer + QA\nLead\nUniversal API Platform\t3\n\n-- 3 of 10 --\n\nPrimary Roles\nData Sync Engineer\nDevOps Engineer\nQA Engineer\nResponsibilities\nWebhooks\nEvent processing\nSync engine\nRetry mechanisms\nDocker setup\nDeployment\nCI/CD\nMonitoring\nAPI testing\nIntegration testing\n4. Aditya — Frontend Engineer + Developer Experience\nEngineer\nPrimary Roles\nFrontend Engineer\nUX Engineer\nDocumentation Engineer\nResponsibilities\nDashboard\nLogin system UI\nCRM connection pages\nUniversal API Platform\t4\n\n-- 4 of 10 --\n\nAPI documentation\nTesting playground\nAnalytics pages\nSettings pages\nWork Distribution :\nGirish (System Architect + Backend Lead + Security Lead)\nWeek 1\nFinalize system architecture\nDesign database schema\nCreate repository structure\nDefine unified CRM data model\nPrepare API specifications\nWeek 2\nImplement authentication system\nOAuth 2.0 integration framework\nJWT authentication\nAccess & refresh token management\nWeek 3\nDevelop unified API layer\nContacts API\nCompanies API\nAPI Gateway implementation\nWeek 4\nSecurity hardening\nUniversal API Platform\t5\n\n-- 5 of 10 --\n\nRate limiting\nRole-based access control\nFinal architecture review\nDeliverables\n✅ Architecture Diagram\n✅ Database Schema\n✅ Authentication Module\n✅ Unified API Layer\n✅ Security Layer\nSwayamsuchee (Integration Engineer)\nWeek 1\nResearch HubSpot API\nResearch Salesforce API\nResearch Pipedrive API\nWeek 2\nBuild HubSpot connector\nBuild Salesforce connector\nBuild Pipedrive connector\nWeek 3\nCreate provider adapters\nData mapping layer\nUnified response transformation\nWeek 4\nError handling\nUniversal API Platform\t6\n\n-- 6 of 10 --\n\nRate limit handling\nConnector testing\nDeliverables\n✅ HubSpot Integration\n✅ Salesforce Integration\n✅ Pipedrive Integration\n✅ Mapping Engine\nSoujanya (Data Sync Engineer + DevOps + QA)\nWeek 1\nDocker setup\nRedis setup\nQueue architecture planning\nWeek 2\nWebhook receiver development\nEvent processing pipeline\nWeek 3\nSync engine implementation\nRetry mechanism\nBackground workers\nWeek 4\nDeployment\nCI/CD pipeline\nIntegration testing\nPerformance testing\nUniversal API Platform\t7\n\n-- 7 of 10 --\n\nDeliverables\n✅ Sync Engine\n✅ Webhooks\n✅ Deployment Pipeline\n✅ Testing Reports\nAditya (Frontend Engineer + Developer Experience Engineer)\nWeek 1\nUI wireframes\nDashboard design\nDesign system setup\nWeek 2\nLogin page\nDashboard layout\nSidebar & navigation\nWeek 3\nCRM connection pages\nAnalytics page\nSettings page\nWeek 4\nAPI documentation\nTesting playground\nUI polishing\nDeliverables\n✅ Dashboard\nUniversal API Platform\t8\n\n-- 8 of 10 --\n\n✅ CRM Connection UI\n✅ Analytics Pages\n✅ API Documentation\nSystem Architecture :\nClient Dashboard\n↓\nAPI Gateway\n↓\nAuthentication Layer\n↓\nUnified API Layer\n↓\nProvider Adapters\n┌────────┬──────────┬─────────┐\n│ \tHubSpot \t│ \tSalesforce \t│ \tPipedrive \t│\n└────────┴──────────┴─────────┘\n↓\nDatabase + Cache\nProject Roadmap\nPhase 1 :- Research & Architecture\nPhase 2 :- Authentication & Backend\nPhase 3 :- CRM Integrations\nPhase 4 :- Frontend Development\nPhase 5 :- Testing & Deployment\nPhase 6 :- Documentation & Presentation\nProject Milestones :\nMilestone 1 (End of Week 1)\nArchitecture Complete\nUniversal API Platform\t9\n\n-- 9 of 10 --\n\nDatabase Ready\nUI Design Ready\nCRM API Research Complete\nMilestone 2 (End of Week 2)\nAuthentication Working\nCRM Connectors Working\nDashboard Ready\nWebhooks Ready\nMilestone 3 (End of Week 3)\nUnified API Operational\nSync Engine Operational\nFrontend Connected\nMilestone 4 (End of Week 4)\nTesting Complete\nDeployment Complete\nFinal Presentation Ready\nUniversal API Platform\t10\n\n-- 10 of 10 --\n\n",
-      "entities": {
-        "docId": "DOC-UNIV-999",
-        "docType": "System Architecture & Roadmaps",
-        "effectiveDate": "2026-07-21",
-        "expirationDate": "N/A",
-        "organizations": [
-          "Universal API Team",
-          "Influcraft Inc."
-        ],
-        "signatories": [
-          "Girish Kumar Samal",
-          "Swayamsuchee Mohanty",
-          "Soujanya",
-          "Aditya"
-        ],
-        "financials": {
-          "totalAmount": "$250,000.00 USD",
-          "paymentTerms": "Net 30",
-          "taxRate": "0.00%"
-        },
-        "emails": [
-          "biswajitasamal8342@gmail.com"
-        ],
-        "slaUptime": "99.99%",
-        "avgLatencyTarget": "< 15ms"
-      },
-      "tables": [
-        {
-          "title": "Role Allocation Summary",
-          "headers": [
-            "Team Member",
-            "Primary Roles",
-            "Key Deliverable"
-          ],
-          "rows": [
-            [
-              "Girish",
-              "System Architect & Backend Lead",
-              "Auth, Schema & Gateway"
-            ],
-            [
-              "Swayamsuchee",
-              "Integration & Adapter Engineer",
-              "HubSpot, Salesforce, Pipedrive Connectors"
-            ],
-            [
-              "Soujanya",
-              "Data Sync & DevOps QA Lead",
-              "Sync Engine, Webhooks, Docker & CI/CD"
-            ],
-            [
-              "Aditya",
-              "Frontend & DX Engineer",
-              "UI Dashboard, CRM Connection & Playground"
-            ]
-          ]
-        }
-      ],
-      "createdAt": "2026-07-21T18:33:41.309Z",
-      "updatedAt": "2026-07-21T18:33:41.309Z"
-    }
-  ]
+  "documents": []
 }
