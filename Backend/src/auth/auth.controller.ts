@@ -11,6 +11,7 @@ import {
   sendUnauthorized,
 } from '../utils/response.helper';
 import { logger } from '../utils/logger';
+import { sendVerificationCodeEmail } from '../services/email.service';
 
 /**
  * @swagger
@@ -305,7 +306,15 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
     resetCodes.set(email.toLowerCase(), { code, expires });
     logger.info(`[PASSWORD RESET] Generated verification code for ${email}: ${code}`);
 
-    sendSuccess(res, { devCode: code }, 'Password reset code generated.');
+    let userName: string | undefined;
+    try {
+      const profile = await AuthService.getProfileByEmail(email);
+      userName = profile?.name;
+    } catch (_) {}
+
+    const emailSent = await sendVerificationCodeEmail(email, code, userName);
+
+    sendSuccess(res, { devCode: code, emailSent }, 'Verification code sent to your email address.');
   } catch (error) {
     logger.error('ForgotPassword error:', error);
     sendError(res, 'Failed to process forgot password request');

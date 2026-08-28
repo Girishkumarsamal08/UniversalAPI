@@ -1353,10 +1353,13 @@ export default function App() {
           setShowAuth(true);
           setRegistering(true);
           setForgotMode(false);
+        } else if (rawPath === 'home' || rawPath === '') {
+          setShowAuth(false);
+          setForgotMode(false);
         } else {
           setShowAuth(false);
           setForgotMode(false);
-          if (window.location.pathname !== '/') {
+          if (window.location.pathname !== '/' && window.location.pathname !== '/home') {
             window.history.replaceState(null, '', '/');
           }
         }
@@ -2059,6 +2062,9 @@ export default function App() {
       localStorage.setItem('unified_user', JSON.stringify(res.data.data.user));
       setCurrentUser(res.data.data.user);
       setIsLoggedIn(true);
+      if (typeof window !== 'undefined') {
+        window.history.pushState({ tab: 'dashboard' }, '', '/dashboard');
+      }
     } catch (err) {
       if (!err.response) setLoginError('⚠️ Backend not running. Start: cd backend && npm run dev');
       else if (err.response?.status === 401) setLoginError('❌ Wrong email or password.');
@@ -2086,6 +2092,9 @@ export default function App() {
         setCurrentUser(user);
         setIsLoggedIn(true);
         setShowAuth(false);
+        if (typeof window !== 'undefined') {
+          window.history.pushState({ tab: 'dashboard' }, '', '/dashboard');
+        }
         showToast(`🎉 Registration successful! Welcome to ${loginForm.organizationName || 'your workspace'} as ${user.role}!`, 'success');
         fetchData();
       } else {
@@ -2106,15 +2115,26 @@ export default function App() {
   const handleRequestCode = async (e) => {
     e.preventDefault(); setLoginError(''); setSuccessMsg(''); setForgotLoading(true);
     try {
-      await api.post('/auth/forgot-password', { email: forgotEmail.trim() });
-      setForgotCode('');
+      const res = await api.post('/auth/forgot-password', { email: forgotEmail.trim() });
+      const devCode = res.data?.data?.devCode || res.data?.devCode;
+      if (devCode) {
+        setForgotCode(devCode);
+      } else {
+        setForgotCode('');
+      }
       setForgotNewPassword('');
       setForgotConfirmPassword('');
-      showToast(`🔐 Security code sent to ${forgotEmail}! Please check your email inbox.`, 'success');
-      setSuccessMsg(`✅ Verification code sent to ${forgotEmail}. Enter the code and your new password below.`);
+      showToast(`🔐 Security code generated for ${forgotEmail}!`, 'success');
+      setSuccessMsg(`✅ Verification code sent to ${forgotEmail}.${devCode ? ` Verification Code: ${devCode}` : ''}`);
       setForgotStep(2);
     } catch (err) {
-      setLoginError(err.response?.data?.message || 'Failed to send verification code. Please check email address.');
+      if (!err.response) {
+        setLoginError('⚠️ Backend server is not running. Please start the backend server.');
+      } else {
+        const resErr = err.response?.data;
+        const msg = resErr?.errors ? resErr.errors.join(', ') : (resErr?.message || 'Failed to send verification code. Please check email address.');
+        setLoginError('❌ ' + msg);
+      }
     } finally {
       setForgotLoading(false);
     }
@@ -2145,9 +2165,15 @@ export default function App() {
       setForgotMode(false);
       setForgotStep(1);
       setRegistering(false);
-      setLoginForm(prev => ({ ...prev, email: forgotEmail, password: '' }));
+      setLoginForm(prev => ({ ...prev, email: forgotEmail, password: forgotNewPassword }));
     } catch (err) {
-      setLoginError(err.response?.data?.message || 'Failed to reset password. Please verify your 6-digit code.');
+      if (!err.response) {
+        setLoginError('⚠️ Backend server is not running. Please start the backend server.');
+      } else {
+        const resErr = err.response?.data;
+        const msg = resErr?.errors ? resErr.errors.join(', ') : (resErr?.message || 'Failed to reset password. Please verify your 6-digit code.');
+        setLoginError('❌ ' + msg);
+      }
     } finally {
       setForgotLoading(false);
     }

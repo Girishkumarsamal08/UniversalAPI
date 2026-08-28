@@ -387,17 +387,42 @@ class DatabaseFallback {
         continue;
       }
 
-      // Handle contains mode/insensitive
-      if (val && typeof val === 'object' && 'contains' in val) {
-        const searchStr = String(val.contains).toLowerCase();
-        const recordVal = String(record[key] || '').toLowerCase();
-        if (!recordVal.includes(searchStr)) {
+      // Handle Prisma filter objects: { equals: '...', mode: 'insensitive' }, { contains: '...' }, { in: [...] }
+      if (val && typeof val === 'object') {
+        if ('equals' in val) {
+          const isInsensitive = val.mode === 'insensitive';
+          const target = String(val.equals);
+          const actual = String(record[key] || '');
+          if (isInsensitive ? target.toLowerCase() !== actual.toLowerCase() : target !== actual) {
+            return false;
+          }
+          continue;
+        }
+        if ('contains' in val) {
+          const isInsensitive = val.mode === 'insensitive';
+          const searchStr = String(val.contains);
+          const recordVal = String(record[key] || '');
+          if (isInsensitive ? !recordVal.toLowerCase().includes(searchStr.toLowerCase()) : !recordVal.includes(searchStr)) {
+            return false;
+          }
+          continue;
+        }
+        if ('in' in val && Array.isArray(val.in)) {
+          if (!val.in.includes(record[key])) {
+            return false;
+          }
+          continue;
+        }
+      }
+
+      // Exact match check with string case-insensitivity for emails
+      if (key === 'email' && typeof val === 'string' && typeof record[key] === 'string') {
+        if (record[key].toLowerCase() !== val.toLowerCase()) {
           return false;
         }
         continue;
       }
 
-      // Exact match check
       if (record[key] !== val) {
         return false;
       }

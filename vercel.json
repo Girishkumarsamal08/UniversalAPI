@@ -6,21 +6,8 @@
       "destination": "https://universalapi-sa2a.onrender.com/api/v1/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/v1/(.*)",
-      "dest": "https://universalapi-sa2a.onrender.com/api/v1/$1"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/.*",
-      "dest": "/index.html"
     }
   ]
 }
